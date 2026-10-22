@@ -1,0 +1,50 @@
+name: bhc-system
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      BHC_API_PASSWORD: ${BHC_API_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Runs once, on first start: 01 schema, 02 api role, 03 demo seed, 04 api password
+      - ./database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # No published ports: only the api container can reach the database.
+
+  api:
+    profiles: ["app"]
+    build: ./api
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgres://bhc_api:${BHC_API_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_HOURS: ${SESSION_HOURS:-8}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+
+  nginx:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "443:443"          # the only published port
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

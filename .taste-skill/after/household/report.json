@@ -1,0 +1,1353 @@
+{
+ "url": "http://localhost:5173/seed.html?t=ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnpkV0lpT2lJeklpd2lhblJwSWpvaU9XWTFPRGczWXpRdE1qY3lZUzAwTXpFeUxXSmtaVFF0TUdaak9EaGhabVJtTkRBM0lpd2ljbTlzWlNJNklrSklWeUlzSW5WelpYSnVZVzFsSWpvaVltaDNNU0lzSW1saGRDSTZNVGM1TWpZek1qTTVNaXdpWlhod0lqb3hOemt5TmpZeE1Ua3lmUS5Sd05kWXUyX2pJSTdCNnp3Ti1abnpEWG52dnNpSy14ejNSNlJhNTM2RDBF&u=eyJpZCI6MywidXNlcm5hbWUiOiJiaHcxIiwiZnVsbF9uYW1lIjoiRGVtbyBCSFcgT25lIiwicm9sZSI6IkJIVyIsImlzX2FjdGl2ZSI6dHJ1ZSwiem9uZV9pZHMiOlsxXSwibGFzdF9sb2dpbl9hdCI6IjIwMjYtMTAtMjJUMDE6MjQ6MzkuNDAzWiIsImNyZWF0ZWRfYXQiOiIyMDI2LTEwLTE2VDA3OjIxOjA4LjQ1NVoiLCJ1cGRhdGVkX2F0IjoiMjAyNi0xMC0yMlQwMToyNDozOS40MDNaIn0%3D&to=/households/new",
+ "at": "2026-10-22T03:38:41.118Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 2,
+   "filled": [
+    0.48,
+    0.52
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 1,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 1742,
+     "screens": 1.9,
+     "words": 354,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 22,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 28,
+     "vw": 1.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 125,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "Encode household",
+     "words": 2,
+     "lines": 1,
+     "size": 28,
+     "font": "Plus Jakarta Sans"
+    },
+    "headings": [
+     {
+      "text": "Encode household",
+      "words": 2,
+      "chars": 16,
+      "lines": 1,
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plus Jakarta Sans",
+      "weight": 700,
+      "tracking": -0.02,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.46,
+      "top": 125,
+      "tag": "h1",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 1,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      28
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plus Jakarta Sans",
+      "size": 15,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.9
+     },
+     "measureChars": 88,
+     "max": {
+      "size": 28,
+      "vw": 1.9,
+      "font": "Plus Jakarta Sans",
+      "text": "Encode household"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.07,
+     "smallText": 9
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f6f9f8",
+     "bodyBgHsl": {
+      "h": 160,
+      "s": 0.2,
+      "l": 0.97
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 644,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#2c3a37",
+       "share": 0.45
+      },
+      {
+       "color": "#56635f",
+       "share": 0.32
+      },
+      {
+       "color": "#10201e",
+       "share": 0.15
+      },
+      {
+       "color": "#115e59",
+       "share": 0.03
+      },
+      {
+       "color": "#66716f",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#ffffff",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 1
+      },
+      "fg": "#2c3a37"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 2,
+     "radius": 6,
+     "height": 35,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Encode household",
+      "Add Family Member"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 7,
+     "hairlineSamples": [
+      "aside.sidebar 230px",
+      "header.header 1210px",
+      "div.stepper 880px",
+      "div.section-head 836px",
+      "div.section-head 836px"
+     ],
+     "outlinedBoxes": 5,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 5,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 2,
+     "fixed": true,
+     "height": 900,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 1742,
+    "margins": {
+     "left": 395,
+     "right": 111
+    },
+    "sections": [
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 257,
+      "height": 369,
+      "words": 44,
+      "media": 0,
+      "middle": 14,
+      "heading": {
+       "text": "Household information",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 417,
+      "right": 187,
+      "textLeft": 417,
+      "textRight": 224,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 644,
+      "height": 1000,
+      "words": 82,
+      "media": 0,
+      "middle": 13,
+      "heading": {
+       "text": "Family members roster",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 417,
+      "right": 206,
+      "textLeft": 436,
+      "textRight": 244,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Encode household",
+      "size": 28,
+      "top": 125,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 395,
+      "n": 2
+     },
+     {
+      "x": 439,
+      "n": 2
+     },
+     {
+      "x": 479,
+      "n": 2
+     }
+    ],
+    "leftBlocks": 6,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.17,
+    "voidBox": {
+     "x": 0,
+     "y": 240,
+     "w": 360,
+     "h": 600
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "dark": false,
+    "ground": "#f6f9f8",
+    "sidebar": {
+     "w": 230,
+     "tag": "aside",
+     "links": 5,
+     "share": 0.16
+    },
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 165,
+     "right": 76
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 28,
+     "vw": 1.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 125,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 2,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 5,
+     "radii": [
+      [
+       8,
+       5
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 1,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 175,
+       "size": 30,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.08,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      28
+     ]
+    },
+    "title": {
+     "text": "Encode household",
+     "size": 28,
+     "top": 125
+    },
+    "colourShare": 0.001
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 3,
+   "filled": [
+    0.73,
+    0.88,
+    0.82
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 1,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 2717,
+     "screens": 2.7,
+     "words": 337,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 22,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 21,
+     "vw": 2.7,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 118,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "Encode household",
+     "words": 2,
+     "lines": 1,
+     "size": 21,
+     "font": "Plus Jakarta Sans"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      21
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plus Jakarta Sans",
+      "size": 15,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.9
+     },
+     "measureChars": 88,
+     "max": {
+      "size": 21,
+      "vw": 2.7,
+      "font": "Plus Jakarta Sans",
+      "text": "Encode household"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.08,
+     "smallText": 5
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f6f9f8",
+     "bodyBgHsl": {
+      "h": 160,
+      "s": 0.2,
+      "l": 0.97
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 240,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#2c3a37",
+       "share": 0.48
+      },
+      {
+       "color": "#56635f",
+       "share": 0.28
+      },
+      {
+       "color": "#10201e",
+       "share": 0.14
+      },
+      {
+       "color": "#115e59",
+       "share": 0.04
+      },
+      {
+       "color": "#66716f",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#ffffff",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 1
+      },
+      "fg": "#2c3a37"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 1,
+     "radius": 6,
+     "height": 35,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Encode household"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 7,
+     "hairlineSamples": [
+      "aside.sidebar 224px",
+      "header.header 768px",
+      "div.stepper 733px",
+      "div.section-head 689px",
+      "div.section-head 689px"
+     ],
+     "outlinedBoxes": 5,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 5,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 2,
+     "fixed": true,
+     "height": 1024,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 2717,
+    "margins": {
+     "left": 18,
+     "right": 30
+    },
+    "sections": [
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 240,
+      "height": 764,
+      "words": 44,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Household information",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 40,
+      "right": 40,
+      "textLeft": 40,
+      "textRight": 392,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 1022,
+      "height": 1604,
+      "words": 82,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Family members roster",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 40,
+      "right": 58,
+      "textLeft": 58,
+      "textRight": 195,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Encode household",
+      "size": 21,
+      "top": 118,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 18,
+      "n": 2
+     },
+     {
+      "x": 61,
+      "n": 2
+     },
+     {
+      "x": 102,
+      "n": 2
+     }
+    ],
+    "leftBlocks": 6,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "dark": false,
+    "ground": "#f6f9f8",
+    "sidebar": {
+     "w": 224,
+     "tag": "aside",
+     "links": 5,
+     "share": 0.29
+    },
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 17,
+     "right": 18
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 21,
+     "vw": 2.7,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 118,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 5,
+     "radii": [
+      [
+       8,
+       5
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 1,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 175,
+       "size": 30,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.06,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      21
+     ]
+    },
+    "title": {
+     "text": "Encode household",
+     "size": 21,
+     "top": 118
+    },
+    "colourShare": 0.001
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 4,
+   "filled": [
+    0.69,
+    0.81,
+    0.87,
+    0.81
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 1,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 2891,
+     "screens": 3.4,
+     "words": 337,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 22,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 19,
+     "vw": 4.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 118,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "Encode household",
+     "words": 2,
+     "lines": 1,
+     "size": 19,
+     "font": "Plus Jakarta Sans"
+    },
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      19
+     ],
+     "sizeCount": 8,
+     "notLoaded": [],
+     "body": {
+      "font": "Plus Jakarta Sans",
+      "size": 15,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 5.9
+     },
+     "measureChars": 47,
+     "max": {
+      "size": 19,
+      "vw": 4.9,
+      "font": "Plus Jakarta Sans",
+      "text": "Encode household"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0,
+     "centerShare": 0.08,
+     "smallText": 5
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f6f9f8",
+     "bodyBgHsl": {
+      "h": 160,
+      "s": 0.2,
+      "l": 0.97
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f6f9f8",
+       "top": 0,
+       "hsl": {
+        "h": 160,
+        "s": 0.2,
+        "l": 0.97
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 261,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#2c3a37",
+       "share": 0.48
+      },
+      {
+       "color": "#56635f",
+       "share": 0.28
+      },
+      {
+       "color": "#10201e",
+       "share": 0.14
+      },
+      {
+       "color": "#115e59",
+       "share": 0.04
+      },
+      {
+       "color": "#66716f",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#ffffff",
+      "hsl": {
+       "h": 0,
+       "s": 0,
+       "l": 1
+      },
+      "fg": "#2c3a37"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 6,
+     "inHero": 1,
+     "radius": 6,
+     "height": 35,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Encode household"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 7,
+     "hairlineSamples": [
+      "aside.sidebar 224px",
+      "header.header 390px",
+      "div.stepper 355px",
+      "div.section-head 321px",
+      "div.section-head 321px"
+     ],
+     "outlinedBoxes": 5,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 5,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": {
+     "links": 2,
+     "fixed": true,
+     "height": 844,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 2891,
+    "margins": {
+     "left": 18,
+     "right": 30
+    },
+    "sections": [
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 261,
+      "height": 774,
+      "words": 44,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Household information",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 35,
+      "right": 35,
+      "textLeft": 35,
+      "textRight": 68,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div.card.section-card",
+      "tag": "div",
+      "top": 1052,
+      "height": 1748,
+      "words": 82,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Family members roster",
+       "size": 16,
+       "tag": "h2"
+      },
+      "left": 35,
+      "right": 53,
+      "textLeft": 53,
+      "textRight": 54,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Encode household",
+      "size": 19,
+      "top": 118,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 18,
+      "n": 2
+     },
+     {
+      "x": 56,
+      "n": 2
+     },
+     {
+      "x": 92,
+      "n": 2
+     }
+    ],
+    "leftBlocks": 6,
+    "bodySize": 13,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "dark": false,
+    "ground": "#f6f9f8",
+    "sidebar": null,
+    "topbar": {
+     "h": 64
+    },
+    "canvas": {
+     "left": 18,
+     "right": 18
+    },
+    "hero": {
+     "text": "Encode household",
+     "words": 2,
+     "chars": 16,
+     "lines": 1,
+     "size": 19,
+     "vw": 4.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 700,
+     "tracking": -0.02,
+     "leading": 1.2,
+     "top": 118,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 5,
+     "radii": [
+      [
+       8,
+       5
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 0,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 1,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 175,
+       "size": 30,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.06,
+     "tiny": 0,
+     "tinySamples": [],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      19
+     ]
+    },
+    "title": {
+     "text": "Encode household",
+     "size": 19,
+     "top": 118
+    },
+    "colourShare": 0
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\desktop-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\tablet-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\tablet-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\after\\household\\mobile-page-01.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

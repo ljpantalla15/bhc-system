@@ -1,0 +1,1420 @@
+{
+ "url": "http://localhost:5173/login",
+ "at": "2026-10-22T01:25:05.090Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.73
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 0,
+    "transitions": 1,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 900,
+     "screens": 1,
+     "words": 117,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 10,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Health Center Resident Profiling",
+     "words": 4,
+     "chars": 32,
+     "lines": 2,
+     "size": 33,
+     "vw": 2.3,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.03,
+     "leading": 1.15,
+     "top": 313,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": {
+     "text": "Health Center Resident Profiling",
+     "words": 4,
+     "lines": 2,
+     "size": 32.9,
+     "font": "Plus Jakarta Sans"
+    },
+    "headings": [
+     {
+      "text": "Health Center Resident Profiling",
+      "words": 4,
+      "chars": 32,
+      "lines": 2,
+      "size": 32.9,
+      "vw": 2.3,
+      "font": "Plus Jakarta Sans",
+      "weight": 800,
+      "tracking": -0.03,
+      "leading": 1.15,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.31,
+      "top": 313,
+      "tag": "h1",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 1,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15,
+      33
+     ],
+     "sizeCount": 6,
+     "notLoaded": [],
+     "body": {
+      "font": "Plus Jakarta Sans",
+      "size": 13.3,
+      "leading": 1.65,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 9.5
+     },
+     "measureChars": 66,
+     "max": {
+      "size": 32.9,
+      "vw": 2.3,
+      "font": "Plus Jakarta Sans",
+      "text": "Health Center"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 2,
+     "microLabelShare": 0.049,
+     "microSamples": [
+      "Health Information System",
+      "Demo accounts"
+     ],
+     "upperShare": 0.06,
+     "centerShare": 0.08,
+     "smallText": 14
+    },
+    "eyebrows": [
+     {
+      "text": "Barangay Tago",
+      "above": "Health Center Resident Profiling",
+      "upper": false,
+      "tracked": false,
+      "mono": false,
+      "pill": false,
+      "size": 14.7,
+      "top": 267
+     }
+    ],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f6f8",
+     "bodyBgHsl": {
+      "h": 210,
+      "s": 0.22,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f6f8",
+       "top": 0,
+       "hsl": {
+        "h": 210,
+        "s": 0.22,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#134e4a",
+       "top": 0,
+       "hsl": {
+        "h": 176,
+        "s": 0.61,
+        "l": 0.19
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#ffffff",
+       "share": 0.64
+      },
+      {
+       "color": "#94a3b8",
+       "share": 0.14
+      },
+      {
+       "color": "#64748b",
+       "share": 0.08
+      },
+      {
+       "color": "#5eead4",
+       "share": 0.06
+      },
+      {
+       "color": "#334155",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#0f766e",
+      "hsl": {
+       "h": 175,
+       "s": 0.77,
+       "l": 0.26
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": [
+      {
+       "text": "Access is role-restricted. All data chan",
+       "ratio": 2.4,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#f4f6f8"
+      },
+      {
+       "text": "Purok 1",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Purok 2 & 3",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "All Puroks (Read-Only)",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Accounts & Zones",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 5,
+     "inHero": 5,
+     "radius": 8,
+     "height": 40,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Sign In",
+      "BHW 1 bhw1 Purok 1",
+      "BHW 2 bhw2 Purok 2 & 3",
+      "Midwife midwife1 All Puroks (Read-Only)",
+      "Administrator admin1 Accounts & Zones"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 2,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "div.card → rgba(0, 0, 0, 0.06) 0px 1px 3px 0px",
+      "input#login-username.form-control → rgba(20, 184, 166, 0.1) 0px 0px 0px 3px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 1,
+     "hairlineSamples": [
+      "div 342px"
+     ],
+     "outlinedBoxes": 1,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 1,
+     "boxRadius": 10,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 900,
+    "margins": {
+     "left": 162,
+     "right": 167
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Health Center Resident Profiling",
+      "size": 33,
+      "top": 313,
+      "firstScreen": true
+     },
+     {
+      "text": "Staff Sign In",
+      "size": 15,
+      "top": 181,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 162,
+      "n": 2
+     },
+     {
+      "x": 979,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 3,
+    "bodySize": 11,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0.18,
+    "voidBox": {
+     "x": 600,
+     "y": 120,
+     "w": 300,
+     "h": 780
+    }
+   },
+   "app": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "dark": false,
+    "ground": "#f4f6f8",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 162,
+     "right": 167
+    },
+    "hero": {
+     "text": "Health Center Resident Profiling",
+     "words": 4,
+     "chars": 32,
+     "lines": 2,
+     "size": 33,
+     "vw": 2.3,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.03,
+     "leading": 1.15,
+     "top": 313,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 2,
+     "firstScreen": 2,
+     "ragged": [],
+     "voids": [
+      {
+       "gap": 163,
+       "at": 695,
+       "panel": "Health Center"
+      }
+     ]
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 3,
+     "radii": [
+      [
+       0,
+       2
+      ],
+      [
+       10,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 1,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 2,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 175,
+       "size": 42,
+       "radius": "8px"
+      },
+      {
+       "hue": 166,
+       "size": 38,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.71,
+     "tiny": 6,
+     "tinySamples": [
+      "Demo accounts 10px",
+      "Purok 1 10px",
+      "Purok 2 & 3 10px",
+      "All Puroks (Read-Only) 10px"
+     ],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15,
+      33
+     ]
+    },
+    "title": {
+     "text": "Health Center\nResident Profiling",
+     "size": 33,
+     "top": 313
+    },
+    "colourShare": 0.515
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.27
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 0,
+    "transitions": 1,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 1024,
+     "screens": 1,
+     "words": 43,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 10,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Staff Sign In",
+     "words": 3,
+     "chars": 13,
+     "lines": 1,
+     "size": 15,
+     "vw": 1.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 1.55,
+     "top": 243,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": null,
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15
+     ],
+     "sizeCount": 5,
+     "notLoaded": [],
+     "body": null,
+     "measureChars": null,
+     "max": {
+      "size": 14.7,
+      "vw": 1.9,
+      "font": "Plus Jakarta Sans",
+      "text": "Staff Sign In"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 1,
+     "microLabelShare": 0.054,
+     "microSamples": [
+      "Demo accounts"
+     ],
+     "upperShare": 0.1,
+     "centerShare": 0.26,
+     "smallText": 6
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f6f8",
+     "bodyBgHsl": {
+      "h": 210,
+      "s": 0.22,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f6f8",
+       "top": 0,
+       "hsl": {
+        "h": 210,
+        "s": 0.22,
+        "l": 0.96
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#94a3b8",
+       "share": 0.47
+      },
+      {
+       "color": "#64748b",
+       "share": 0.26
+      },
+      {
+       "color": "#334155",
+       "share": 0.07
+      },
+      {
+       "color": "#0f172a",
+       "share": 0.05
+      },
+      {
+       "color": "#6b21a8",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#0f766e",
+      "hsl": {
+       "h": 175,
+       "s": 0.77,
+       "l": 0.26
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": [
+      {
+       "text": "Access is role-restricted. All data chan",
+       "ratio": 2.4,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#f4f6f8"
+      },
+      {
+       "text": "Purok 1",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Purok 2 & 3",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "All Puroks (Read-Only)",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Accounts & Zones",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 5,
+     "inHero": 5,
+     "radius": 8,
+     "height": 40,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Sign In",
+      "BHW 1 bhw1 Purok 1",
+      "BHW 2 bhw2 Purok 2 & 3",
+      "Midwife midwife1 All Puroks (Read-Only)",
+      "Administrator admin1 Accounts & Zones"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 2,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "div.card → rgba(0, 0, 0, 0.06) 0px 1px 3px 0px",
+      "input#login-username.form-control → rgba(20, 184, 166, 0.1) 0px 0px 0px 3px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 1,
+     "hairlineSamples": [
+      "div 342px"
+     ],
+     "outlinedBoxes": 1,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 1,
+     "boxRadius": 10,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 1024,
+    "margins": {
+     "left": 213,
+     "right": 213
+    },
+    "sections": [],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Staff Sign In",
+      "size": 15,
+      "top": 243,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 260,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 1,
+    "bodySize": 10,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "dark": false,
+    "ground": "#f4f6f8",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 213,
+     "right": 213
+    },
+    "hero": {
+     "text": "Staff Sign In",
+     "words": 3,
+     "chars": 13,
+     "lines": 1,
+     "size": 15,
+     "vw": 1.9,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 1.55,
+     "top": 243,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 2,
+     "radii": [
+      [
+       10,
+       1
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 1,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 1,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 166,
+       "size": 38,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.71,
+     "tiny": 6,
+     "tinySamples": [
+      "Demo accounts 10px",
+      "Purok 1 10px",
+      "Purok 2 & 3 10px",
+      "All Puroks (Read-Only) 10px"
+     ],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15,
+      33
+     ]
+    },
+    "title": null,
+    "colourShare": 0.02
+   },
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 1,
+   "filled": [
+    0.6
+   ],
+   "motion": {
+    "elements": 1,
+    "css": 0,
+    "transitions": 1,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 844,
+     "screens": 1,
+     "words": 43,
+     "img": 0,
+     "video": 0,
+     "canvas": 0,
+     "svg": 10,
+     "sections": 0,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 0,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Staff Sign In",
+     "words": 3,
+     "chars": 13,
+     "lines": 1,
+     "size": 15,
+     "vw": 3.8,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 1.55,
+     "top": 153,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "h1": null,
+    "headings": [],
+    "headingSummary": {
+     "count": 0,
+     "maxLines": 0,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 0,
+     "medianWords": null,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Plus Jakarta Sans",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15
+     ],
+     "sizeCount": 5,
+     "notLoaded": [],
+     "body": null,
+     "measureChars": null,
+     "max": {
+      "size": 14.7,
+      "vw": 3.8,
+      "font": "Plus Jakarta Sans",
+      "text": "Staff Sign In"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 1,
+     "microLabelShare": 0.054,
+     "microSamples": [
+      "Demo accounts"
+     ],
+     "upperShare": 0.1,
+     "centerShare": 0.26,
+     "smallText": 6
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f4f6f8",
+     "bodyBgHsl": {
+      "h": 210,
+      "s": 0.22,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f4f6f8",
+       "top": 0,
+       "hsl": {
+        "h": 210,
+        "s": 0.22,
+        "l": 0.96
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 124,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#94a3b8",
+       "share": 0.47
+      },
+      {
+       "color": "#64748b",
+       "share": 0.26
+      },
+      {
+       "color": "#334155",
+       "share": 0.07
+      },
+      {
+       "color": "#0f172a",
+       "share": 0.05
+      },
+      {
+       "color": "#6b21a8",
+       "share": 0.05
+      }
+     ],
+     "button": {
+      "bg": "#0f766e",
+      "hsl": {
+       "h": 175,
+       "s": 0.77,
+       "l": 0.26
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": [
+      {
+       "text": "Access is role-restricted. All data chan",
+       "ratio": 2.4,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#f4f6f8"
+      },
+      {
+       "text": "Purok 1",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Purok 2 & 3",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "All Puroks (Read-Only)",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      },
+      {
+       "text": "Accounts & Zones",
+       "ratio": 2.6,
+       "need": 4.5,
+       "size": 9.8,
+       "fg": "#94a3b8",
+       "bg": "#ffffff"
+      }
+     ]
+    },
+    "buttons": {
+     "count": 5,
+     "inHero": 5,
+     "radius": 8,
+     "height": 40,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Sign In",
+      "BHW 1 bhw1 Purok 1",
+      "BHW 2 bhw2 Purok 2 & 3",
+      "Midwife midwife1 All Puroks (Read-Only)",
+      "Administrator admin1 Accounts & Zones"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 2,
+     "shadowOverlay": 0,
+     "shadowSamples": [
+      "div.card → rgba(0, 0, 0, 0.06) 0px 1px 3px 0px",
+      "input#login-username.form-control → rgba(20, 184, 166, 0.1) 0px 0px 0px 3px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 1,
+     "hairlineSamples": [
+      "div 276px"
+     ],
+     "outlinedBoxes": 1,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 1,
+     "boxRadius": 10,
+     "squareMedia": 0,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [],
+    "nav": null,
+    "fontsLoaded": [
+     "plus jakarta sans"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 844,
+    "margins": {
+     "left": 57,
+     "right": 57
+    },
+    "sections": [
+     {
+      "sel": "form",
+      "tag": "form",
+      "top": 213,
+      "height": 207,
+      "words": 4,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 57,
+      "right": 57,
+      "textLeft": 57,
+      "textRight": 184,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "div",
+      "tag": "div",
+      "top": 440,
+      "height": 222,
+      "words": 24,
+      "media": 0,
+      "middle": 0,
+      "heading": null,
+      "left": 57,
+      "right": 57,
+      "textLeft": 57,
+      "textRight": 70,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Staff Sign In",
+      "size": 15,
+      "top": 153,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 104,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 1,
+    "bodySize": 10,
+    "stage": false,
+    "explains": false,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "dark": false,
+    "ground": "#f4f6f8",
+    "sidebar": null,
+    "topbar": null,
+    "canvas": {
+     "left": 57,
+     "right": 57
+    },
+    "hero": {
+     "text": "Staff Sign In",
+     "words": 3,
+     "chars": 13,
+     "lines": 1,
+     "size": 15,
+     "vw": 3.8,
+     "font": "Plus Jakarta Sans",
+     "weight": 800,
+     "tracking": -0.02,
+     "leading": 1.55,
+     "top": 153,
+     "tag": "h1",
+     "kind": "heading",
+     "align": "left",
+     "position": "left"
+    },
+    "charts": 0,
+    "layout": {
+     "panels": 1,
+     "firstScreen": 1,
+     "ragged": [],
+     "voids": []
+    },
+    "tiles": 0,
+    "panels": {
+     "count": 2,
+     "radii": [
+      [
+       10,
+       1
+      ],
+      [
+       0,
+       1
+      ]
+     ],
+     "heavyBorders": 0,
+     "borderSamples": [],
+     "heavyShadows": 0,
+     "softShadows": 1,
+     "shadowSamples": [],
+     "glass": 0
+    },
+    "chips": {
+     "count": 1,
+     "hues": 1,
+     "samples": [
+      {
+       "hue": 166,
+       "size": 38,
+       "radius": "8px"
+      }
+     ]
+    },
+    "numbers": {
+     "cells": 0,
+     "leftAligned": 0,
+     "figures": 0,
+     "tabularShare": null,
+     "kpiMax": null
+    },
+    "rows": null,
+    "chartHues": 0,
+    "placeholders": [],
+    "type": {
+     "under13": 0.71,
+     "tiny": 6,
+     "tinySamples": [
+      "Demo accounts 10px",
+      "Purok 1 10px",
+      "Purok 2 & 3 10px",
+      "All Puroks (Read-Only) 10px"
+     ],
+     "sizes": [
+      10,
+      11,
+      12,
+      13,
+      15,
+      33
+     ]
+    },
+    "title": null,
+    "colourShare": 0.036
+   },
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "micro-label",
+   "width": 1440,
+   "message": "2 tiny uppercase letter-spaced label(s): \"Health Information System\", \"Demo accounts\"",
+   "fix": "Prefer sentence case at body size.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "contrast",
+   "width": 1440,
+   "message": "Unreadable text: \"Access is role-restricted. All data chan\" 2.4:1 (#94a3b8 on #f4f6f8)",
+   "fix": "Raise contrast to at least 4.5:1 for text, 3:1 for large display.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "many-h1",
+   "width": 1440,
+   "message": "2 h1 elements.",
+   "fix": "One h1 per page; section titles are h2."
+  },
+  {
+   "level": "WARN",
+   "id": "colour-sprawl",
+   "width": 1440,
+   "message": "52% of the first screen is strongly coloured.",
+   "fix": "Keep the screen neutral and spend colour on data and status: the studied screens sit near 3%, and only tinted styles reach 10–15%, as pale tints rather than saturated fills."
+  },
+  {
+   "level": "FAIL",
+   "id": "tiny-text",
+   "width": 1440,
+   "message": "6 text blocks under 11px: Demo accounts 10px, Purok 1 10px, Purok 2 & 3 10px, All Puroks (Read-Only) 10px.",
+   "fix": "Nothing below 11px; secondary text 12px, data 13–14px.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "panel-void",
+   "width": 1440,
+   "message": "1 card(s) hold a blank band inside: 163px in \"Health Center\".",
+   "fix": "A card stretches to its neighbour only when it has content to fill. Keep a legend or a note directly under its chart (only an action or a total may sit at a stretched card's foot), let a short card keep its own height (align-items: start), and let a filtered block shrink to its rows."
+  },
+  {
+   "level": "FAIL",
+   "id": "palette-purple",
+   "width": 768,
+   "message": "Indigo / violet (text #6b21a8).",
+   "fix": "Use the accent from the drawn palette.",
+   "alsoAt": [
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "no-title",
+   "width": 768,
+   "message": "The screen has no h1.",
+   "fix": "Name the screen in an h1 at the top of the canvas (18–28px): \"Overview\", \"Payouts\", the project's name.",
+   "alsoAt": [
+    390
+   ]
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\desktop-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\desktop-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\tablet-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\tablet-page-01.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\mobile-fold.jpg",
+   "pages": [
+    "C:\\Users\\user\\Downloads\\bhc-system-starter\\bhc-system\\.taste-skill\\before\\mobile-page-01.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

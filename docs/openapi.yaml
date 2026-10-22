@@ -1,0 +1,655 @@
+openapi: 3.1.0
+info:
+  title: Barangay Health Center Resident Profiling and Masterlist API
+  version: 0.1.0
+  summary: Draft REST API for the MIS 215 project (fictional Barangay Tago Health Center).
+  description: |
+    JSON over HTTPS. Three roles: **BHW** (own zones only), **Midwife** (read access to all
+    zones, no edits), **Administrator** (user accounts only, no resident health data).
+    The server checks role and zone on every request.
+
+    **Conventions**
+    - Authenticate with `POST /api/auth/login`, then send `Authorization: Bearer <token>`.
+    - Success codes: 200 and 201. Errors: 400, 401, 403, 404, 500, always in the `Error` shape.
+    - `DELETE` never removes data. It deactivates (`is_active = false`).
+    - Age and age risk group are calculated from `birth_date` and are read-only.
+    - A BHW asking for a record outside their assigned zones gets 404 (existence is not revealed);
+      asking for a zone they are not assigned to gets 403.
+    - Use synthetic data only.
+
+    **Error codes** (`error.code`): `validation_failed`, `duplicate_resident`,
+    `invalid_credentials`, `unauthenticated`, `forbidden`, `not_found`, `internal_error`.
+  contact:
+    name: Lorenzo Jay R. Pantalla
+servers:
+  - url: https://localhost
+    description: Local Docker Compose (nginx on port 443)
+tags:
+  - name: Auth
+  - name: Households
+  - name: Residents
+  - name: Masterlists
+  - name: Users
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Log in and receive a token
+      description: "**Access:** public. Creates a server-side session (`auth_sessions`)."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+            example: { username: bhw1, password: Demo#12345 }
+      responses:
+        '200':
+          description: Logged in.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: End the current session
+      description: "**Access:** BHW, Midwife, Administrator. Revokes the session so the token stops working."
+      responses:
+        '200':
+          description: Session ended.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/households:
+    post:
+      tags: [Households]
+      operationId: createHousehold
+      summary: Encode a household and its members
+      description: |
+        **Access:** BHW (zone must be one of their assigned zones).
+        Creates the household and all members in one transaction. If any member fails
+        validation, nothing is saved. An exact duplicate resident (same full name and birth
+        date) returns 400 with `duplicate_resident`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HouseholdCreate' }
+            example:
+              household_no: 202610-TAGO-00004
+              date_of_visit: '2026-10-05'
+              zone_id: 1
+              water_source_code: LV3
+              toilet_facility_code: P
+              is_4ps_household: false
+              members:
+                - last_name: Santos
+                  first_name: Maria
+                  middle_name: Lopez
+                  relation_to_head: HEAD
+                  birth_date: '1985-03-12'
+                  sex: F
+                  civil_status_code: M
+                  education_code: HG
+                  is_pregnant: false
+                  uses_fp: true
+                  fp_method_code: IUD
+                  fp_status_code: CU
+                  medical_conditions: [{ condition_code: HPN }]
+      responses:
+        '201':
+          description: Household created.
+          headers:
+            Location:
+              description: URL of the new household.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Household' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/households/{id}:
+    get:
+      tags: [Households]
+      operationId: getHousehold
+      summary: View a household with its active members
+      description: "**Access:** BHW (own zones), Midwife (all zones)."
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The household.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Household' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/residents:
+    get:
+      tags: [Residents]
+      operationId: searchResidents
+      summary: Search residents
+      description: "**Access:** BHW (own zones), Midwife (all zones). Results are limited to active residents unless `include_inactive=true`."
+      parameters:
+        - name: q
+          in: query
+          description: Name search (last or first name, tolerant of small spelling differences).
+          schema: { type: string, minLength: 2, maxLength: 100 }
+        - name: zone_id
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: household_id
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: age_risk_group
+          in: query
+          schema: { $ref: '#/components/schemas/AgeRiskGroup' }
+        - name: include_inactive
+          in: query
+          schema: { type: boolean, default: false }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: A page of residents.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResidentPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/residents/{id}:
+    patch:
+      tags: [Residents]
+      operationId: updateResident
+      summary: Update a resident record
+      description: |
+        **Access:** BHW (own zones). Send only the fields to change; send `null` to clear an
+        optional field. The change is written to the change log with the user and time.
+        A resident cannot be moved to another household here.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResidentUpdate' }
+            example: { occupation: Teacher, is_pregnant: true, lmp_date: '2026-08-20' }
+      responses:
+        '200':
+          description: The updated resident.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Resident' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    delete:
+      tags: [Residents]
+      operationId: deactivateResident
+      summary: Deactivate a resident (logical delete)
+      description: "**Access:** BHW (own zones). The record is kept with `is_active = false`; who and when are stamped automatically."
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: reason
+          in: query
+          description: Optional reason, for example `Moved out`.
+          schema: { type: string, maxLength: 200 }
+      responses:
+        '200':
+          description: The deactivated resident.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Resident' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/masterlists:
+    get:
+      tags: [Masterlists]
+      operationId: getMasterlist
+      summary: Generate a masterlist
+      description: |
+        **Access:** BHW (own zones), Midwife (all zones).
+        Without `zone_id`, a BHW gets all of their zones and the Midwife gets every zone.
+        Lists contain active residents of active households only.
+      parameters:
+        - name: category
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/MasterlistCategory' }
+        - name: zone_id
+          in: query
+          description: Limit to one zone. A BHW may only use an assigned zone (otherwise 403).
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: The masterlist.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Masterlist' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: List user accounts
+      description: "**Access:** Administrator. Password hashes are never returned."
+      parameters:
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/Role' }
+        - name: include_inactive
+          in: query
+          schema: { type: boolean, default: true }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: A page of users.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a user account
+      description: "**Access:** Administrator. `zone_ids` is allowed only for BHW accounts."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserCreate' }
+            example: { username: bhw3, password: Change-me-123, full_name: Demo BHW Three, role: BHW, zone_ids: [3] }
+      responses:
+        '201':
+          description: User created.
+          headers:
+            Location:
+              description: URL of the new user.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/users/{id}:
+    patch:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update or deactivate a user account
+      description: "**Access:** Administrator. Set `is_active` to false to deactivate; accounts are never deleted. Sending `zone_ids` replaces the zone list."
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserUpdate' }
+            example: { is_active: false }
+      responses:
+        '200':
+          description: The updated user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token from POST /api/auth/login. Its id matches a row in auth_sessions; logout revokes it.
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: page_size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+
+  responses:
+    BadRequest:
+      description: Validation failed or the request is malformed (400).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            error:
+              code: duplicate_resident
+              message: A resident with the same name and birth date already exists.
+              details: [{ field: 'members[0]', issue: 'Matches an active resident in household 202610-TAGO-00001' }]
+    Unauthorized:
+      description: Missing, expired, or revoked token, or wrong credentials (401).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: unauthenticated, message: Log in again. } }
+    Forbidden:
+      description: The role or zone is not allowed to do this (403).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: forbidden, message: You do not have access to this zone. } }
+    NotFound:
+      description: The record does not exist or is not visible to this user (404).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: not_found, message: Record not found. } }
+    ServerError:
+      description: Unexpected server error (500). No internal details are exposed.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { error: { code: internal_error, message: Something went wrong. } }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details:
+              type: array
+              items:
+                type: object
+                required: [field, issue]
+                properties:
+                  field: { type: string }
+                  issue: { type: string }
+    Message:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+
+    # ---- code lists (values match the lookup tables) ----
+    Role: { type: string, enum: [BHW, MIDWIFE, ADMIN] }
+    Sex: { type: string, enum: [M, F] }
+    RelationToHead: { type: string, enum: [HEAD, SPOUSE, SON, DAUGHTER, OTHER] }
+    EthnicGroup: { type: string, enum: [IP, NON_IP] }
+    PhilhealthMembership: { type: string, enum: [MEMBER, DEPENDENT] }
+    PhilhealthCategory: { type: string, enum: [DIRECT, INDIRECT] }
+    CivilStatusCode: { type: string, enum: [M, S, W, SP, C] }
+    EducationCode: { type: string, enum: [N, PS, ES, EU, EG, HS, HU, HG, SH, ALS, V, CS, CU, CG, PG] }
+    ReligionCode: { type: string, enum: [RC, CHR, INC, ISL, BAP, BAC, BUD, COG, JW, PRO, SDA, LDS, EVA, PEN, UNK, OTH] }
+    MedicalConditionCode: { type: string, enum: [HPN, DM, TB, OTH] }
+    DisabilityTypeCode: { type: string, enum: [LD, SPEECH, PHYS, ORTHO, VISUAL, DHH, INTEL, PSYCHO, MENTAL, CANCER, RARE] }
+    FpMethodCode: { type: string, enum: [COC, POP, INJ, WD, IUD, CON, LAM, BTL, IMP, SDM, DPT, OTH] }
+    FpStatusCode: { type: string, enum: [NA, CU, CM, CC, DO, R] }
+    WaterSourceCode: { type: string, enum: [LV1, LV2, LV3, O] }
+    ToiletFacilityCode: { type: string, enum: [P, PF, VIP, WS, OH, OP, WO] }
+    AgeRiskGroup:
+      type: string
+      enum: [N, I, PSAC, SAC, AD, A, SC]
+      description: N newborn (0-28 days), I infant, PSAC 1-4, SAC 5-9, AD adolescent 10-19, A adult 20-59, SC senior citizen 60+.
+    MasterlistCategory: { type: string, enum: [SENIOR_CITIZEN, UNDER_FIVE, PREGNANT, PWD] }
+
+    # ---- auth ----
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 50 }
+        password: { type: string, minLength: 1, maxLength: 200, format: password }
+    LoginResponse:
+      type: object
+      required: [token, token_type, expires_at, user]
+      properties:
+        token: { type: string }
+        token_type: { type: string, const: Bearer }
+        expires_at: { type: string, format: date-time }
+        user: { $ref: '#/components/schemas/User' }
+
+    # ---- users ----
+    User:
+      type: object
+      required: [id, username, full_name, role, is_active]
+      properties:
+        id: { type: integer, format: int64, readOnly: true }
+        username: { type: string }
+        full_name: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        is_active: { type: boolean }
+        zone_ids:
+          type: array
+          description: Assigned zones (BHW accounts only).
+          items: { type: integer, format: int64 }
+        last_login_at: { type: [string, 'null'], format: date-time }
+        created_at: { type: string, format: date-time, readOnly: true }
+        updated_at: { type: string, format: date-time, readOnly: true }
+    UserCreate:
+      type: object
+      required: [username, password, full_name, role]
+      properties:
+        username: { type: string, pattern: '^[a-z0-9._-]{3,50}$' }
+        password: { type: string, minLength: 8, maxLength: 200, format: password, description: Minimum length is a draft value; confirm the password policy. }
+        full_name: { type: string, minLength: 1, maxLength: 150 }
+        role: { $ref: '#/components/schemas/Role' }
+        zone_ids: { type: array, items: { type: integer, format: int64 }, uniqueItems: true }
+    UserUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        full_name: { type: string, minLength: 1, maxLength: 150 }
+        password: { type: string, minLength: 8, maxLength: 200, format: password }
+        role: { $ref: '#/components/schemas/Role' }
+        is_active: { type: boolean }
+        zone_ids: { type: array, items: { type: integer, format: int64 }, uniqueItems: true }
+    UserPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/User' } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    # ---- residents ----
+    MedicalCondition:
+      type: object
+      required: [condition_code]
+      properties:
+        condition_code: { $ref: '#/components/schemas/MedicalConditionCode' }
+        other_specify: { type: [string, 'null'], description: Required when condition_code is OTH. }
+    ResidentBase:
+      type: object
+      description: |
+        Resident fields shared by create, update, and responses.
+        Rules (checked by the API and the database):
+        relation_other is required when relation_to_head is OTHER; religion_other when religion_code is OTH;
+        fp_method_other when fp_method_code is OTH; is_pregnant only for females, and then lmp_date is required;
+        fp_method_code is required when uses_fp is true; FP fields only for females;
+        philhealth_category only for MEMBER; disability_type_code only when is_pwd is true.
+      properties:
+        last_name: { type: string, minLength: 1, maxLength: 100 }
+        first_name: { type: string, minLength: 1, maxLength: 100 }
+        middle_name: { type: [string, 'null'], maxLength: 100 }
+        relation_to_head: { $ref: '#/components/schemas/RelationToHead' }
+        relation_other: { type: [string, 'null'], maxLength: 100 }
+        birth_date: { type: string, format: date, description: Between 1900-01-01 and today. }
+        sex: { $ref: '#/components/schemas/Sex' }
+        civil_status_code: { $ref: '#/components/schemas/CivilStatusCode' }
+        education_code: { $ref: '#/components/schemas/EducationCode' }
+        religion_code:
+          oneOf: [{ $ref: '#/components/schemas/ReligionCode' }, { type: 'null' }]
+        religion_other: { type: [string, 'null'], maxLength: 100 }
+        ethnic_group:
+          oneOf: [{ $ref: '#/components/schemas/EthnicGroup' }, { type: 'null' }]
+        occupation: { type: [string, 'null'], maxLength: 100 }
+        philhealth_id: { type: [string, 'null'], pattern: '^[0-9]{12}$', description: Exactly 12 digits. Unique among active residents. }
+        philhealth_membership:
+          oneOf: [{ $ref: '#/components/schemas/PhilhealthMembership' }, { type: 'null' }]
+        philhealth_category:
+          oneOf: [{ $ref: '#/components/schemas/PhilhealthCategory' }, { type: 'null' }]
+        is_pregnant: { type: boolean, default: false }
+        lmp_date: { type: [string, 'null'], format: date, description: Last menstrual period. }
+        uses_fp: { type: [boolean, 'null'], description: 'Using any family planning method? null = not applicable.' }
+        fp_method_code:
+          oneOf: [{ $ref: '#/components/schemas/FpMethodCode' }, { type: 'null' }]
+        fp_method_other: { type: [string, 'null'], maxLength: 100 }
+        fp_status_code:
+          oneOf: [{ $ref: '#/components/schemas/FpStatusCode' }, { type: 'null' }]
+        is_pwd: { type: boolean, default: false }
+        disability_type_code:
+          oneOf: [{ $ref: '#/components/schemas/DisabilityTypeCode' }, { type: 'null' }]
+        medical_conditions:
+          type: array
+          description: Replaces the resident's conditions when sent on update.
+          items: { $ref: '#/components/schemas/MedicalCondition' }
+          uniqueItems: true
+    ResidentCreate:
+      allOf:
+        - $ref: '#/components/schemas/ResidentBase'
+        - type: object
+          required: [last_name, first_name, relation_to_head, birth_date, sex, civil_status_code, education_code]
+    ResidentUpdate:
+      allOf:
+        - $ref: '#/components/schemas/ResidentBase'
+        - type: object
+          minProperties: 1
+    Resident:
+      allOf:
+        - $ref: '#/components/schemas/ResidentBase'
+        - type: object
+          required: [id, household_id, last_name, first_name, relation_to_head, birth_date, sex, age_years, age_risk_group, is_active]
+          properties:
+            id: { type: integer, format: int64, readOnly: true }
+            household_id: { type: integer, format: int64, readOnly: true }
+            household_no: { type: string, readOnly: true }
+            zone_id: { type: integer, format: int64, readOnly: true }
+            zone_name: { type: string, readOnly: true }
+            age_years: { type: integer, readOnly: true }
+            age_months: { type: integer, readOnly: true, description: Months beyond the whole years. }
+            age_risk_group: { $ref: '#/components/schemas/AgeRiskGroup' }
+            disability_type: { type: [string, 'null'], readOnly: true, description: Label of disability_type_code. }
+            is_active: { type: boolean, readOnly: true }
+            created_at: { type: string, format: date-time, readOnly: true }
+            updated_at: { type: string, format: date-time, readOnly: true }
+    ResidentPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Resident' } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    # ---- households ----
+    HouseholdCreate:
+      type: object
+      required: [household_no, date_of_visit, zone_id, members]
+      properties:
+        household_no: { type: string, pattern: '^[0-9]{6}-[A-Za-z0-9]+-[0-9]{5}$', description: 'Format yyyymm-FacilityCode-00000.' }
+        date_of_visit: { type: string, format: date, description: Cannot be in the future. }
+        zone_id: { type: integer, format: int64 }
+        address_line: { type: [string, 'null'], maxLength: 200 }
+        water_source_code:
+          oneOf: [{ $ref: '#/components/schemas/WaterSourceCode' }, { type: 'null' }]
+        toilet_facility_code:
+          oneOf: [{ $ref: '#/components/schemas/ToiletFacilityCode' }, { type: 'null' }]
+        is_4ps_household: { type: boolean, default: false }
+        fourps_household_id: { type: [string, 'null'], description: Allowed only when is_4ps_household is true. }
+        reviewed_by_name: { type: [string, 'null'], maxLength: 150 }
+        members:
+          type: array
+          minItems: 1
+          description: Exactly one member must have relation_to_head HEAD.
+          items: { $ref: '#/components/schemas/ResidentCreate' }
+    Household:
+      type: object
+      required: [id, household_no, date_of_visit, visit_quarter, zone_id, is_active, members]
+      properties:
+        id: { type: integer, format: int64, readOnly: true }
+        household_no: { type: string }
+        date_of_visit: { type: string, format: date }
+        visit_quarter: { type: integer, minimum: 1, maximum: 4, readOnly: true }
+        zone_id: { type: integer, format: int64 }
+        zone_name: { type: string, readOnly: true }
+        address_line: { type: [string, 'null'] }
+        barangay: { type: string }
+        municipality_city: { type: string }
+        province: { type: string }
+        water_source_code:
+          oneOf: [{ $ref: '#/components/schemas/WaterSourceCode' }, { type: 'null' }]
+        toilet_facility_code:
+          oneOf: [{ $ref: '#/components/schemas/ToiletFacilityCode' }, { type: 'null' }]
+        is_4ps_household: { type: boolean }
+        fourps_household_id: { type: [string, 'null'] }
+        interviewed_by: { type: integer, format: int64, readOnly: true }
+        reviewed_by_name: { type: [string, 'null'] }
+        is_active: { type: boolean, readOnly: true }
+        members:
+          type: array
+          description: Active members only.
+          items: { $ref: '#/components/schemas/Resident' }
+        created_at: { type: string, format: date-time, readOnly: true }
+        updated_at: { type: string, format: date-time, readOnly: true }
+
+    # ---- masterlists ----
+    Masterlist:
+      type: object
+      required: [category, generated_at, total, items]
+      properties:
+        category: { $ref: '#/components/schemas/MasterlistCategory' }
+        zone_ids:
+          type: array
+          description: Zones covered by this list.
+          items: { type: integer, format: int64 }
+        generated_at: { type: string, format: date-time }
+        total: { type: integer }
+        items: { type: array, items: { $ref: '#/components/schemas/Resident' } }
