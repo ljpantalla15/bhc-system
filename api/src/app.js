@@ -16,6 +16,15 @@ app.use(helmet());
 // JSON request body parser
 app.use(express.json());
 
+// Records change while a worker is looking at them, so a cached list would
+// show a directory that no longer matches the database. Never let the
+// browser or a proxy hold on to an API response.
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  next();
+});
+
 // Health check endpoint (verifies database connectivity)
 app.get('/api/health', async (req, res, next) => {
   try {

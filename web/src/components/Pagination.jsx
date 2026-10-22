@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export function Pagination({ page, pageSize, total, onPageChange }) {
+export function Pagination({ page, pageSize, total, unit = 'entries', onPageChange }) {
   const totalPages = Math.ceil(total / pageSize) || 1;
   if (totalPages <= 1) return null;
 
@@ -21,7 +21,7 @@ export function Pagination({ page, pageSize, total, onPageChange }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border)', background: 'var(--slate-50)', flexWrap: 'wrap', gap: '0.6rem' }}>
       <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-xs)' }}>
-        Showing <strong>{startEntry}</strong> to <strong>{endEntry}</strong> of <strong>{total}</strong> entries
+        Showing <strong>{startEntry}</strong> to <strong>{endEntry}</strong> of <strong>{total}</strong> {unit}
       </div>
       <div className="btn-group" style={{ gap: '0.35rem' }}>
         <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} title="Previous page">

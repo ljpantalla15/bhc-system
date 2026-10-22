@@ -174,6 +174,14 @@ export const residentSearchQuerySchema = z.object({
   include_inactive: z
     .preprocess((val) => val === 'true' || val === true, z.boolean())
     .default(false),
+  /**
+   * How the list is ordered and paged.
+   *  - 'name'      : one row per resident, ordered by last name (default).
+   *  - 'household' : members of a household are kept together, the page is
+   *                  counted in households, and a household is never split
+   *                  across two pages.
+   */
+  group_by: z.enum(['name', 'household']).default('name'),
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(25),
 });

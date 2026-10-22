@@ -231,7 +231,7 @@ export function UsersPage() {
             </tbody>
           </table>
         </div>
-        <Pagination page={page} pageSize={pageSize} total={total} onPageChange={(p) => setPage(p)} />
+        <Pagination page={page} pageSize={pageSize} total={total} unit="accounts" onPageChange={(p) => setPage(p)} />
 
       <Modal
         isOpen={isCreateOpen}

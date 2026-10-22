@@ -304,8 +304,8 @@ td.num, th.num { text-align: right; }
 .field-error { display: flex; align-items: flex-start; gap: 0.3rem; margin-top: 0.3rem; font-size: var(--fs-xs); font-weight: 600; color: var(--pill-negative-ink); line-height: 1.45; }
 .field-warn { display: flex; align-items: center; gap: 0.4rem; margin: 0 0 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); background: var(--notice-bg); border: 1px solid var(--notice-border); color: var(--notice-ink); font-size: var(--fs-xs); font-weight: 600; }
 .age-chip { display: inline-flex; align-items: center; padding: 0.25rem 0.5rem; border-radius: var(--radius-xs); background: var(--raised); border: 1px solid var(--border); color: var(--slate-600); font-size: var(--fs-2xs); font-weight: 600; white-space: nowrap; }
-.seg-control { display: flex; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
-.seg-btn { flex: 1; min-height: 40px; padding: 0.45rem 0.75rem; border: none; background: transparent; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); cursor: pointer; transition: var(--transition-fast); }
+.seg-control { display: flex; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); width: fit-content; }
+.seg-btn { flex: 1; min-height: 40px; padding: 0.45rem 0.75rem; border: none; background: transparent; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); cursor: pointer; transition: var(--transition-fast); white-space: nowrap; }
 .seg-btn + .seg-btn { border-left: 1px solid var(--border); }
 .seg-btn:hover { background: var(--raised); }
 .seg-btn.on-f, .seg-btn.on-m { background: var(--accent-soft); color: var(--accent-ink); }
@@ -374,6 +374,19 @@ td.num, th.num { text-align: right; }
 .table code { font-size: var(--fs-xs); background: var(--raised); padding: 2px 6px; border-radius: var(--radius-xs); color: var(--slate-700); white-space: nowrap; }
 .table .avatar-cell { width: 30px; height: 30px; border-radius: var(--radius-full); background: var(--raised); color: var(--slate-600); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--fs-2xs); flex-shrink: 0; }
 .table .row-actions { display: flex; gap: 0.3rem; justify-content: flex-end; }
+
+/* Household grouping in the resident directory */
+.table .group-row { background: var(--raised); }
+.table .group-row td { border-bottom: 1px solid var(--border); padding: 0.5rem 1rem; }
+.table .group-row .group-tail { border-bottom: 1px solid var(--border); }
+.table .group-link { display: flex; align-items: center; gap: 0.5rem; font: inherit; cursor: pointer; text-align: left; color: var(--text-heading); }
+.table .group-link:hover code { text-decoration: underline; }
+.table .group-link svg { color: var(--accent); flex-shrink: 0; }
+.table .group-link code { font-size: var(--fs-sm); font-weight: 600; background: transparent; padding: 0; color: var(--text-heading); }
+.table .group-meta { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+.table .group-meta + .group-meta { padding-left: 0.5rem; border-left: 1px solid var(--border); }
+.table .member-row td:first-child { padding-left: 2.25rem; position: relative; }
+.table .member-row td:first-child::before { content: ''; position: absolute; left: 1rem; top: 0; bottom: 0; width: 1px; background: var(--border); }
 
 /* -------------------------------------------------------------- alerts --- */
 .alert { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.85rem 1.1rem; border-radius: var(--radius-md); font-size: var(--fs-sm); border: 1px solid transparent; }

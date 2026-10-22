@@ -165,6 +165,19 @@ paths:
         - name: include_inactive
           in: query
           schema: { type: boolean, default: false }
+        - name: group_by
+          in: query
+          description: |
+            How the list is ordered and paged.
+
+            * `name` (default) — one row per resident, ordered by last name.
+            * `household` — the members of a household are kept together and
+              ordered head first, then spouse, then children by age. The page
+              is counted in **households**, so a household is never split
+              across two pages. Filters still select residents: a household is
+              listed when at least one of its members matches, and each item
+              carries `household_member_count` so a partial group is visible.
+          schema: { type: string, enum: [name, household], default: name }
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
       responses:
@@ -571,6 +584,12 @@ components:
             id: { type: integer, format: int64, readOnly: true }
             household_id: { type: integer, format: int64, readOnly: true }
             household_no: { type: string, readOnly: true }
+            household_member_count:
+              type: integer
+              readOnly: true
+              description: |
+                The number of members the household has in total. When a filter
+                narrows the list, the members shown can be fewer than this.
             zone_id: { type: integer, format: int64, readOnly: true }
             zone_name: { type: string, readOnly: true }
             age_years: { type: integer, readOnly: true }
@@ -587,7 +606,21 @@ components:
         items: { type: array, items: { $ref: '#/components/schemas/Resident' } }
         page: { type: integer }
         page_size: { type: integer }
-        total: { type: integer }
+        total:
+          type: integer
+          description: |
+            The number of paging units in scope: residents when `group_by=name`,
+            households when `group_by=household`.
+        total_residents:
+          type: integer
+          description: The number of residents in scope, whichever way the list is grouped.
+        total_households:
+          type: integer
+          description: The number of distinct households in scope, whichever way the list is grouped.
+        group_by:
+          type: string
+          enum: [name, household]
+          description: The grouping the response was produced with.
 
     # ---- households ----
     HouseholdCreate:

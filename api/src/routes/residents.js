@@ -101,6 +101,10 @@ export async function getResidentRecord(residentId) {
  * GET /api/residents
  * Search and list residents with filters, zone scoping, and pagination.
  * Access: BHW (own zones), Midwife (all zones).
+ *
+ * group_by=household keeps the members of a household together: the list is
+ * ordered household first (head, spouse, children by age) and the page is
+ * counted in households, so a household is never split across two pages.
  */
 residentsRouter.get(
   '/',
@@ -110,6 +114,7 @@ residentsRouter.get(
     try {
       const qp = residentSearchQuerySchema.parse(req.query);
       const user = req.user;
+      const grouped = qp.group_by === 'household';
 
       const conditions = [];
       const params = [];
@@ -164,36 +169,125 @@ residentsRouter.get(
       }
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+      const andClause = conditions.length > 0 ? `AND ${conditions.join(' AND ')}` : '';
 
-      // Count total
+      // Count residents and households in scope
       const countSql = `
-        SELECT count(*)::int AS total
+        SELECT count(*)::int AS total_residents,
+               count(DISTINCT r.household_id)::int AS total_households
           FROM residents r
           JOIN households h ON h.id = r.household_id
          ${whereClause}
       `;
       const countRes = await query(countSql, params);
-      const total = countRes.rows[0].total;
+      const totalResidents = countRes.rows[0].total_residents;
+      const totalHouseholds = countRes.rows[0].total_households;
 
-      // Fetch page
-      const offset = (qp.page - 1) * qp.page_size;
-      const fetchParams = [...params, qp.page_size, offset];
-      const fetchSql = `
-        SELECT r.*,
-               h.household_no, h.zone_id, z.zone_name,
-               age_years(r.birth_date) AS age_years,
-               age_months(r.birth_date) AS age_months,
-               age_risk_group(r.birth_date) AS age_risk_group,
-               dt.label AS disability_type
-          FROM residents r
-          JOIN households h ON h.id = r.household_id
-          JOIN zones z ON z.id = h.zone_id
-          LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
-         ${whereClause}
-         ORDER BY r.last_name, r.first_name, r.id
-         LIMIT $${paramIndex++} OFFSET $${paramIndex++}
-      `;
+      // Order that keeps a household together: head, spouse, children by age.
+      const householdOrder = `
+        h.household_no,
+        CASE r.relation_to_head
+          WHEN 'HEAD' THEN 1
+          WHEN 'SPOUSE' THEN 2
+          WHEN 'SON' THEN 3
+          WHEN 'DAUGHTER' THEN 4
+          ELSE 5
+        END,
+        r.birth_date ASC,
+        r.last_name, r.first_name, r.id`;
+
+      let fetchParams;
+      let fetchSql;
+
+      if (grouped) {
+        // The page is counted in households. Pick the households of this page
+        // first, then return their residents that match the filters.
+        const offset = (qp.page - 1) * qp.page_size;
+        const householdIds = [];
+
+        if (totalHouseholds > 0) {
+          const limitIdx = paramIndex++;
+          const offsetIdx = paramIndex++;
+          const hhSql = `
+            SELECT s.household_id
+              FROM (
+                SELECT DISTINCT r.household_id, h.household_no
+                  FROM residents r
+                  JOIN households h ON h.id = r.household_id
+                 ${whereClause}
+              ) s
+             ORDER BY s.household_no
+             LIMIT $${limitIdx} OFFSET $${offsetIdx}
+          `;
+          const hhRes = await query(hhSql, [...params, qp.page_size, offset]);
+          for (const row of hhRes.rows) householdIds.push(row.household_id);
+        }
+
+        if (householdIds.length === 0) {
+          return res.status(200).json({
+            items: [],
+            page: qp.page,
+            page_size: qp.page_size,
+            total: totalHouseholds,
+            total_residents: totalResidents,
+            total_households: totalHouseholds,
+            group_by: 'household',
+          });
+        }
+
+        const householdIdx = params.length + 1;
+        fetchParams = [...params, householdIds];
+        fetchSql = `
+          SELECT r.*,
+                 h.household_no, h.zone_id, z.zone_name,
+                 age_years(r.birth_date) AS age_years,
+                 age_months(r.birth_date) AS age_months,
+                 age_risk_group(r.birth_date) AS age_risk_group,
+                 dt.label AS disability_type
+            FROM residents r
+            JOIN households h ON h.id = r.household_id
+            JOIN zones z ON z.id = h.zone_id
+            LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
+           WHERE r.household_id = ANY($${householdIdx}::bigint[])
+             ${andClause}
+           ORDER BY ${householdOrder}
+        `;
+      } else {
+        const offset = (qp.page - 1) * qp.page_size;
+        fetchParams = [...params, qp.page_size, offset];
+        fetchSql = `
+          SELECT r.*,
+                 h.household_no, h.zone_id, z.zone_name,
+                 age_years(r.birth_date) AS age_years,
+                 age_months(r.birth_date) AS age_months,
+                 age_risk_group(r.birth_date) AS age_risk_group,
+                 dt.label AS disability_type
+            FROM residents r
+            JOIN households h ON h.id = r.household_id
+            JOIN zones z ON z.id = h.zone_id
+            LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
+           ${whereClause}
+           ORDER BY r.last_name, r.first_name, r.id
+           LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+        `;
+      }
+
       const fetchRes = await query(fetchSql, fetchParams);
+
+      // Member counts per household (how many members the household has in total)
+      const memberCounts = {};
+      const pageHouseholdIds = [...new Set(fetchRes.rows.map((r) => r.household_id))];
+      if (pageHouseholdIds.length > 0) {
+        const memberSql = `
+          SELECT household_id, count(*)::int AS member_count
+            FROM residents
+           WHERE household_id = ANY($1::bigint[])
+             ${qp.include_inactive ? '' : 'AND is_active = true'}
+           GROUP BY household_id
+        `;
+        const memberRes = await query(memberSql, [pageHouseholdIds]);
+        for (const row of memberRes.rows) memberCounts[row.household_id] = row.member_count;
+      }
 
       // Fetch conditions for all returned residents
       const residentIds = fetchRes.rows.map((r) => r.id);
@@ -221,6 +315,7 @@ residentsRouter.get(
         id: parseInt(r.id, 10),
         household_id: parseInt(r.household_id, 10),
         household_no: r.household_no,
+        household_member_count: memberCounts[r.household_id] ?? 0,
         zone_id: parseInt(r.zone_id, 10),
         zone_name: r.zone_name,
         last_name: r.last_name,
@@ -261,7 +356,11 @@ residentsRouter.get(
         items,
         page: qp.page,
         page_size: qp.page_size,
-        total,
+        // The paging unit: residents by default, households when grouped.
+        total: grouped ? totalHouseholds : totalResidents,
+        total_residents: totalResidents,
+        total_households: totalHouseholds,
+        group_by: qp.group_by,
       });
     } catch (err) {
       next(err);

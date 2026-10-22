@@ -15,8 +15,9 @@ import { showToast } from '../components/Toast.jsx';
 import {
   ZONES, AGE_RISK_GROUPS, RELATIONS_TO_HEAD, CIVIL_STATUSES,
   EDUCATION_LEVELS, MEDICAL_CONDITIONS, DISABILITY_TYPES, FP_METHODS,
+  WATER_SOURCES, TOILET_FACILITIES,
 } from '../constants.js';
-import { Plus, Search, Eye, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, X, Check, Home } from 'lucide-react';
 
 const Icons = {
   plus: <Plus className="h-4 w-4" />,
@@ -26,6 +27,7 @@ const Icons = {
   trash: <Trash2 className="h-4 w-4" />,
   close: <X className="h-4 w-4" />,
   closeSm: <X className="h-3.5 w-3.5" />,
+  household: <Home className="h-4 w-4" />,
 };
 
 /** Short target-group names for the directory column. */
@@ -56,8 +58,11 @@ export function ResidentsPage() {
   const [q, setQ] = useState('');
   const [selectedZone, setSelectedZone] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
+  const [groupBy, setGroupBy] = useState('household');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalResidents, setTotalResidents] = useState(0);
+  const [totalHouseholds, setTotalHouseholds] = useState(0);
   const pageSize = 15;
 
   const [viewingResident, setViewingResident] = useState(null);
@@ -65,6 +70,8 @@ export function ResidentsPage() {
   const [deactivatingResident, setDeactivatingResident] = useState(null);
   const [deactivationReason, setDeactivationReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [viewingHousehold, setViewingHousehold] = useState(null);
+  const [householdLoading, setHouseholdLoading] = useState(false);
 
   const fetchResidents = useCallback(async () => {
     setLoading(true);
@@ -74,16 +81,19 @@ export function ResidentsPage() {
       if (q.trim()) params.set('q', q.trim());
       if (selectedZone) params.set('zone_id', selectedZone);
       if (ageGroup) params.set('age_risk_group', ageGroup);
+      params.set('group_by', groupBy);
       params.set('page', String(page));
       params.set('page_size', String(pageSize));
       const data = await api(`/api/residents?${params.toString()}`);
       setResidents(data.items || []);
       setTotal(data.total || 0);
+      setTotalResidents(data.total_residents ?? data.total ?? 0);
+      setTotalHouseholds(data.total_households ?? 0);
     } catch (err) {
       setError(err.message || 'Failed to load residents.');
       showToast({ type: 'danger', message: 'Failed to load residents.' });
     } finally { setLoading(false); }
-  }, [q, selectedZone, ageGroup, page]);
+  }, [q, selectedZone, ageGroup, groupBy, page]);
 
   useEffect(() => { fetchResidents(); }, [fetchResidents]);
 
@@ -110,6 +120,48 @@ export function ResidentsPage() {
 
   const handleSearchSubmit = (e) => { e.preventDefault(); setPage(1); fetchResidents(); };
   const handleResetFilters = () => { setQ(''); setSelectedZone(''); setAgeGroup(''); setPage(1); };
+
+  const handleGroupByChange = (value) => { setGroupBy(value); setPage(1); };
+
+  const openHousehold = async (householdId) => {
+    setHouseholdLoading(true);
+    try {
+      const record = await api(`/api/households/${householdId}`);
+      setViewingHousehold(record);
+    } catch (err) {
+      showToast({ type: 'danger', message: err.message || 'Failed to load the household record.' });
+    } finally { setHouseholdLoading(false); }
+  };
+
+  /**
+   * Rows for the table. In household mode a group row is emitted for each
+   * household, followed by its members, so a family is read as one block.
+   */
+  const tableRows = React.useMemo(() => {
+    if (groupBy !== 'household') {
+      return residents.map((r) => ({ kind: 'resident', resident: r }));
+    }
+    const shownByHousehold = {};
+    for (const r of residents) shownByHousehold[r.household_id] = (shownByHousehold[r.household_id] || 0) + 1;
+
+    const rows = [];
+    let currentId = null;
+    for (const r of residents) {
+      if (r.household_id !== currentId) {
+        currentId = r.household_id;
+        rows.push({
+          kind: 'group',
+          household_id: r.household_id,
+          household_no: r.household_no,
+          zone_name: r.zone_name,
+          member_count: r.household_member_count ?? shownByHousehold[r.household_id],
+          shown_count: shownByHousehold[r.household_id],
+        });
+      }
+      rows.push({ kind: 'resident', resident: r });
+    }
+    return rows;
+  }, [residents, groupBy]);
 
   const handleOpenEdit = (res) => {
     setEditingResident({
@@ -182,13 +234,12 @@ export function ResidentsPage() {
 
   const breadcrumbItems = [
     { label: 'Dashboard', href: '/' },
-    { label: 'Resident Directory' },
+    { label: 'Resident directory' },
   ];
 
   return (
     <div className="page-stack" style={{ animation: 'fadeInUp 0.3s ease backwards' }}>
       <Breadcrumb items={breadcrumbItems} />
-
       <div className="page-header">
         <div className="page-title-group">
           <h1 className="page-title">Resident directory</h1>
@@ -241,8 +292,17 @@ export function ResidentsPage() {
           <Button variant="secondary" onClick={handleResetFilters}>Clear filters</Button>
         )}
 
+        <div className="seg-control" style={{ width: 'auto' }} role="group" aria-label="Group residents by">
+          <button type="button" className={`seg-btn ${groupBy === 'household' ? 'on-f' : ''}`} aria-pressed={groupBy === 'household'} onClick={() => handleGroupByChange('household')}>By household</button>
+          <button type="button" className={`seg-btn ${groupBy === 'name' ? 'on-f' : ''}`} aria-pressed={groupBy === 'name'} onClick={() => handleGroupByChange('name')}>By name</button>
+        </div>
+
         <span className="toolbar-meta">
-          <strong>{total}</strong> {total === 1 ? 'resident' : 'residents'}
+          {groupBy === 'household' ? (
+            <><strong>{totalHouseholds}</strong> {totalHouseholds === 1 ? 'household' : 'households'} · <strong>{totalResidents}</strong> {totalResidents === 1 ? 'resident' : 'residents'}</>
+          ) : (
+            <><strong>{total}</strong> {total === 1 ? 'resident' : 'residents'}</>
+          )}
         </span>
       </div>
 
@@ -264,47 +324,148 @@ export function ResidentsPage() {
               {loading ? renderSkeletonRows() : residents.length === 0 ? (
                 <tr><td colSpan={8}><EmptyState title="No residents found" description="No resident records matched the current filters." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
               ) : (
-                residents.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <div className="avatar-cell">{(r.first_name || '?').charAt(0).toUpperCase()}</div>
-                        <div style={{ minWidth: 0 }}>
-                          <strong style={{ color: 'var(--text-heading)', fontSize: 'var(--fs-sm)', display: 'block', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.last_name}, {r.first_name} {r.middle_name || ''}</strong>
-                          <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--muted)', marginTop: '1px' }}>
-                            {r.relation_to_head === 'HEAD'
-                              ? <span style={{ color: 'var(--accent-ink)', fontWeight: 600 }}>Head of household</span>
-                              : <span style={{ textTransform: 'capitalize' }}>{String(r.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span>}
+                tableRows.map((row) => {
+                  if (row.kind === 'group') {
+                    return (
+                      <tr key={`hh-${row.household_id}`} className="group-row">
+                        <td colSpan={3}>
+                          <button type="button" className="group-link" onClick={() => openHousehold(row.household_id)}>
+                            {Icons.household}
+                            <code>{row.household_no}</code>
+                            <span className="group-meta">{row.zone_name}</span>
+                            <span className="group-meta">
+                              {row.shown_count === row.member_count
+                                ? `${row.member_count} ${row.member_count === 1 ? 'member' : 'members'}`
+                                : `${row.shown_count} of ${row.member_count} members shown`}
+                            </span>
+                          </button>
+                        </td>
+                        <td colSpan={4} className="group-tail" />
+                        <td style={{ textAlign: 'right' }}>
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openHousehold(row.household_id)}>Open household</button>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const r = row.resident;
+                  return (
+                    <tr key={r.id} className="member-row">
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <div className="avatar-cell">{(r.first_name || '?').charAt(0).toUpperCase()}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <strong style={{ color: 'var(--text-heading)', fontSize: 'var(--fs-sm)', display: 'block', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.last_name}, {r.first_name} {r.middle_name || ''}</strong>
+                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--muted)', marginTop: '1px' }}>
+                              {r.relation_to_head === 'HEAD'
+                                ? <span style={{ color: 'var(--accent-ink)', fontWeight: 600 }}>Head of household</span>
+                                : <span style={{ textTransform: 'capitalize' }}>{String(r.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span>}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td><code>{r.household_no}</code></td>
-                    <td><span style={{ color: 'var(--muted)' }}>{r.zone_name}</span></td>
-                    <td className="num">{r.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
-                    <td><span style={{ color: 'var(--muted)' }}>{r.sex === 'M' ? 'Male' : 'Female'}</span></td>
-                    <td><span style={{ color: 'var(--muted)' }} title={AGE_RISK_GROUPS[r.age_risk_group] || r.age_risk_group}>{AGE_GROUP_SHORT[r.age_risk_group] || r.age_risk_group}</span></td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                        {r.is_pregnant && <span className="badge badge-rose">Pregnant</span>}
-                        {(r.medical_conditions || []).map((c, i) => (<span key={i} className="badge badge-amber">{c.condition_code}</span>))}
-                        {r.is_pwd && <span className="badge badge-slate">PWD</span>}
-                        {r.uses_fp && <span className="badge badge-slate">Family planning</span>}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="row-actions">
-                        <IconButton icon={Icons.view} onClick={() => setViewingResident(r)} title="View profile" size="lg" />
-                        {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" size="lg" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate record" size="lg" /></>)}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td>{groupBy === 'household' ? <span style={{ color: 'var(--faint)' }}>—</span> : <code>{r.household_no}</code>}</td>
+                      <td><span style={{ color: 'var(--muted)' }}>{r.zone_name}</span></td>
+                      <td className="num">{r.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
+                      <td><span style={{ color: 'var(--muted)' }}>{r.sex === 'M' ? 'Male' : 'Female'}</span></td>
+                      <td><span style={{ color: 'var(--muted)' }} title={AGE_RISK_GROUPS[r.age_risk_group] || r.age_risk_group}>{AGE_GROUP_SHORT[r.age_risk_group] || r.age_risk_group}</span></td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {r.is_pregnant && <span className="badge badge-rose">Pregnant</span>}
+                          {(r.medical_conditions || []).map((c, i) => (<span key={i} className="badge badge-amber">{c.condition_code}</span>))}
+                          {r.is_pwd && <span className="badge badge-slate">PWD</span>}
+                          {r.uses_fp && <span className="badge badge-slate">Family planning</span>}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="row-actions">
+                          <IconButton icon={Icons.view} onClick={() => setViewingResident(r)} title="View profile" size="lg" />
+                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" size="lg" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate record" size="lg" /></>)}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-        <Pagination page={page} pageSize={pageSize} total={total} onPageChange={(p) => setPage(p)} />
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          unit={groupBy === 'household' ? 'households' : 'residents'}
+          onPageChange={(p) => setPage(p)}
+        />
+
+      <Modal
+        isOpen={!!viewingHousehold}
+        onClose={() => setViewingHousehold(null)}
+        title={viewingHousehold ? `Household ${viewingHousehold.household_no}` : 'Household'}
+        subtitle={viewingHousehold
+          ? `${viewingHousehold.zone_name} · ${viewingHousehold.members.length} ${viewingHousehold.members.length === 1 ? 'member' : 'members'} · visited ${viewingHousehold.date_of_visit}`
+          : ''}
+        isLarge
+        footer={
+          <Button variant="secondary" type="button" onClick={() => setViewingHousehold(null)}>Close</Button>
+        }
+      >
+        {viewingHousehold && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="kv-grid">
+              <div className="kv"><span className="kv-label">Address</span><span className="kv-value">{viewingHousehold.address_line || 'Not stated'}</span></div>
+              <div className="kv"><span className="kv-label">Barangay</span><span className="kv-value">{viewingHousehold.barangay}, {viewingHousehold.municipality_city}</span></div>
+              <div className="kv"><span className="kv-label">Water source</span><span className="kv-value">{WATER_SOURCES.find((w) => w.code === viewingHousehold.water_source_code)?.label || 'Not stated'}</span></div>
+              <div className="kv"><span className="kv-label">Toilet facility</span><span className="kv-value">{TOILET_FACILITIES.find((t) => t.code === viewingHousehold.toilet_facility_code)?.label || 'Not stated'}</span></div>
+              <div className="kv"><span className="kv-label">4Ps household</span><span className="kv-value">{viewingHousehold.is_4ps_household ? `Yes${viewingHousehold.fourps_household_id ? ` · ${viewingHousehold.fourps_household_id}` : ''}` : 'No'}</span></div>
+              <div className="kv"><span className="kv-label">Reviewed by</span><span className="kv-value">{viewingHousehold.reviewed_by_name || 'Pending review'}</span></div>
+            </div>
+
+            <div className="panel">
+              <div className="panel-head">Family members ({viewingHousehold.members.length})</div>
+              <div className="panel-body" style={{ padding: 0 }}>
+                <table className="table" style={{ fontSize: 'var(--fs-sm)' }}>
+                  <thead>
+                    <tr>
+                      <th>Member</th>
+                      <th style={{ width: '130px' }}>Relation</th>
+                      <th style={{ width: '80px' }} className="num">Age</th>
+                      <th style={{ width: '90px' }}>Sex</th>
+                      <th style={{ width: '190px' }}>Target group</th>
+                      <th style={{ width: '170px' }}>Health flags</th>
+                      {isBHW && <th style={{ width: '110px', textAlign: 'right' }}>Action</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingHousehold.members.map((m) => (
+                      <tr key={m.id}>
+                        <td>
+                          <strong style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{m.last_name}, {m.first_name} {m.middle_name || ''}</strong>
+                        </td>
+                        <td><span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{String(m.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span></td>
+                        <td className="num">{m.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
+                        <td><span style={{ color: 'var(--muted)' }}>{m.sex === 'M' ? 'Male' : 'Female'}</span></td>
+                        <td><span style={{ color: 'var(--muted)' }}>{AGE_GROUP_SHORT[m.age_risk_group] || m.age_risk_group}</span></td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                            {m.is_pregnant && <span className="badge badge-rose">Pregnant</span>}
+                            {(m.medical_conditions || []).map((c, i) => (<span key={i} className="badge badge-amber">{c.condition_code}</span>))}
+                            {m.is_pwd && <span className="badge badge-slate">PWD</span>}
+                          </div>
+                        </td>
+                        {isBHW && (
+                          <td style={{ textAlign: 'right' }}>
+                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setViewingHousehold(null); handleOpenEdit(m); }}>Edit</button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         isOpen={!!viewingResident}

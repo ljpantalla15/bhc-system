@@ -120,6 +120,99 @@ test('GET /api/residents scopes BHW to assigned zones only and returns 403 on un
   assert.equal(resForbidden.body.error.code, 'forbidden');
 });
 
+test('GET /api/residents?group_by=household keeps the members of a household together', async () => {
+  const res = await request(app)
+    .get('/api/residents?group_by=household&page=1&page_size=50')
+    .set('Authorization', `Bearer ${midwifeToken}`);
+
+  assert.equal(res.status, 200);
+  assert.equal(res.body.group_by, 'household');
+  assert.ok(res.body.items.length > 0);
+
+  // Members of a household must be contiguous: once a household id changes it
+  // must never come back.
+  const seen = new Set();
+  let previous = null;
+  for (const item of res.body.items) {
+    if (item.household_id !== previous) {
+      assert.equal(seen.has(item.household_id), false, 'household appeared in two blocks');
+      seen.add(item.household_id);
+      previous = item.household_id;
+    }
+  }
+
+  // The head of a household is listed before the other members.
+  const byHousehold = new Map();
+  for (const item of res.body.items) {
+    if (!byHousehold.has(item.household_id)) byHousehold.set(item.household_id, []);
+    byHousehold.get(item.household_id).push(item);
+  }
+  for (const [, members] of byHousehold) {
+    const headIndex = members.findIndex((m) => m.relation_to_head === 'HEAD');
+    if (headIndex > 0) {
+      assert.equal(headIndex, 0, 'the head of the household must come first');
+    }
+  }
+});
+
+test('GET /api/residents?group_by=household pages by household and never splits one', async () => {
+  const pageSize = 1;
+  const first = await request(app)
+    .get(`/api/residents?group_by=household&page=1&page_size=${pageSize}`)
+    .set('Authorization', `Bearer ${midwifeToken}`);
+
+  assert.equal(first.status, 200);
+  assert.equal(first.body.page_size, pageSize);
+
+  // The paging unit is the household.
+  assert.equal(first.body.total, first.body.total_households);
+  assert.ok(first.body.total_residents >= first.body.total);
+
+  // A page holds whole households: every member of a listed household that
+  // matches the filters is on the same page.
+  const householdIds = [...new Set(first.body.items.map((i) => i.household_id))];
+  for (const householdId of householdIds) {
+    const all = await request(app)
+      .get('/api/residents?group_by=household&page=1&page_size=50')
+      .set('Authorization', `Bearer ${midwifeToken}`);
+    const members = all.body.items.filter((i) => i.household_id === householdId);
+    const onPage = first.body.items.filter((i) => i.household_id === householdId);
+    assert.equal(onPage.length, members.length, 'a household was split across pages');
+  }
+});
+
+test('GET /api/residents?group_by=household reports the household member count', async () => {
+  const res = await request(app)
+    .get('/api/residents?group_by=household&page=1&page_size=50')
+    .set('Authorization', `Bearer ${midwifeToken}`);
+
+  assert.equal(res.status, 200);
+  for (const item of res.body.items) {
+    assert.equal(typeof item.household_member_count, 'number');
+    assert.ok(item.household_member_count >= 1);
+  }
+});
+
+test('GET /api/residents?group_by=household still applies the zone scope of a BHW', async () => {
+  const res = await request(app)
+    .get('/api/residents?group_by=household')
+    .set('Authorization', `Bearer ${bhw1Token}`);
+
+  assert.equal(res.status, 200);
+  for (const item of res.body.items) {
+    assert.equal(item.zone_id, 1);
+  }
+});
+
+test('GET /api/residents?group_by=household returns 400 for an unknown group_by value', async () => {
+  const res = await request(app)
+    .get('/api/residents?group_by=nonsense')
+    .set('Authorization', `Bearer ${midwifeToken}`);
+
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error.code, 'validation_failed');
+});
+
 test('PATCH /api/residents/:id updates resident and writes to change_log', async () => {
   // Update Antonio Reyes (id: 1 in zone 1)
   const patchRes = await request(app)
