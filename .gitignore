@@ -15,4 +15,4 @@ backups/*
 .qodo/
 .taste-skill/
 .gemini/
-AGENTS
+AGENTS.md
