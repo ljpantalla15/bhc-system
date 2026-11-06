@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Alert } from '../components/Alert.jsx';
@@ -16,14 +16,16 @@ import {
   EDUCATION_LEVELS, MEDICAL_CONDITIONS, DISABILITY_TYPES, FP_METHODS,
   WATER_SOURCES, TOILET_FACILITIES, AGE_GROUP_SHORT, ageGroupChip, residentTab,
 } from '../constants.js';
-import { Plus, Search, Eye, Pencil, Trash2, X, Check, Home } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, UserX, X, Check, Home } from 'lucide-react';
+
+const CONDITION_NAME = { HPN: 'Hypertension', DM: 'Diabetes', TB: 'Tuberculosis' };
 
 const Icons = {
   plus: <Plus className="h-4 w-4" />,
   search: <Search className="h-4 w-4" />,
   view: <Eye className="h-4 w-4" />,
   edit: <Pencil className="h-4 w-4" />,
-  trash: <Trash2 className="h-4 w-4" />,
+  trash: <UserX className="h-4 w-4" />,
   close: <X className="h-4 w-4" />,
   closeSm: <X className="h-3.5 w-3.5" />,
   household: <Home className="h-4 w-4" />,
@@ -43,15 +45,28 @@ export function ResidentsPage() {
   const [purokCounts, setPurokCounts] = useState({});
   const [countsLoading, setCountsLoading] = useState(true);
 
-  const [q, setQ] = useState('');
-  const [selectedZone, setSelectedZone] = useState('');
+  /* Links from Home can open this page already filtered: ?q=name, ?zone=id */
+  const [searchParams] = useSearchParams();
+  const initialZone = (() => {
+    const z = Number(searchParams.get('zone'));
+    if (!ZONES.some((x) => x.id === z)) return '';
+    return !isBHW || assignedZones.includes(z) ? String(z) : '';
+  })();
+  const [q, setQ] = useState(() => searchParams.get('q') || '');
+  const [selectedZone, setSelectedZone] = useState(initialZone);
   const [ageGroup, setAgeGroup] = useState('');
   const [groupBy, setGroupBy] = useState('household');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalResidents, setTotalResidents] = useState(0);
   const [totalHouseholds, setTotalHouseholds] = useState(0);
-  const pageSize = 15;
+  const [pageSize, setPageSize] = useState(15);
+  const listTopRef = React.useRef(null);
+  /* New page: bring the top of the list back into view. */
+  const changePage = (p) => {
+    setPage(p);
+    listTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const [viewingResident, setViewingResident] = useState(null);
   const [editingResident, setEditingResident] = useState(null);
@@ -81,7 +96,7 @@ export function ResidentsPage() {
       setError(err.message || 'Failed to load residents.');
       showToast({ type: 'danger', message: 'Failed to load residents.' });
     } finally { setLoading(false); }
-  }, [q, selectedZone, ageGroup, groupBy, page]);
+  }, [q, selectedZone, ageGroup, groupBy, page, pageSize]);
 
   useEffect(() => { fetchResidents(); }, [fetchResidents]);
 
@@ -142,6 +157,7 @@ export function ResidentsPage() {
           household_id: r.household_id,
           household_no: r.household_no,
           zone_name: r.zone_name,
+          family: (residents.find((x) => x.household_id === r.household_id && x.relation_to_head === 'HEAD') || r).last_name,
           member_count: r.household_member_count ?? shownByHousehold[r.household_id],
           shown_count: shownByHousehold[r.household_id],
         });
@@ -216,21 +232,42 @@ export function ResidentsPage() {
     } finally { setActionLoading(false); }
   };
 
-  const flagsFor = (r, withFp = true) => (
-    <div className="flags">
-      {r.is_pregnant && <span className="flag flag-maternal">Pregnant</span>}
-      {r.is_pwd && <span className="flag flag-pwd">PWD</span>}
-      {(r.medical_conditions || []).map((c, i) => (<span key={i} className="flag">{c.condition_code}</span>))}
-      {withFp && r.uses_fp && <span className="flag">FP</span>}
-    </div>
+  /* Health notes in plain words, so nobody has to decode HPN or FP. */
+  /* "1959-03-14" -> "14 Mar 1959" */
+  const fmtDate = (iso) => {
+    if (!iso) return null;
+    const d = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+  const relationLabel = (code) => RELATIONS_TO_HEAD.find((x) => x.code === code)?.label || code;
+  const ageText = (r) => (r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months ?? 0} mos`);
+  const Row = ({ label, children, muted }) => (
+    <div className="info-row"><dt>{label}</dt><dd className={muted ? 'is-muted' : ''}>{children}</dd></div>
   );
+  const flagsFor = (r, withFp = true) => {
+    const conditions = r.medical_conditions || [];
+    const any = r.is_pregnant || r.is_pwd || conditions.length > 0 || (withFp && r.uses_fp);
+    if (!any) return <span className="flags-none">None recorded</span>;
+    return (
+      <div className="flags">
+        {r.is_pregnant && <span className="flag flag-maternal">Pregnant</span>}
+        {r.is_pwd && <span className="flag flag-pwd">With disability</span>}
+        {conditions.map((c, i) => (
+          <span key={i} className="flag flag-condition" title={MEDICAL_CONDITIONS.find((m) => m.code === c.condition_code)?.label}>
+            {CONDITION_NAME[c.condition_code] || c.other_specify || 'Other condition'}
+          </span>
+        ))}
+        {withFp && r.uses_fp && <span className="flag flag-soft">Family planning</span>}
+      </div>
+    );
+  };
 
   const groupChip = (code) => (
     <span className={`pchip ${ageGroupChip(code)}`} title={AGE_RISK_GROUPS[code] || code}>{AGE_GROUP_SHORT[code] || code}</span>
   );
 
   const byHousehold = groupBy === 'household';
-  const colCount = byHousehold ? 7 : 8;
+  const colCount = byHousehold ? 5 : 7;
 
   return (
     <div className="page-stack">
@@ -239,7 +276,9 @@ export function ResidentsPage() {
           <h1 className="page-title">Residents</h1>
           <p className="page-subtitle">
             {isBHW
-              ? `Residents in your assigned purok (${assignedZones.join(', ')}). Pick a purok to narrow the list.`
+              ? (assignedZones.length > 1
+                ? `Residents of your puroks (${assignedZones.map((id) => `Purok ${id}`).join(', ')}), by household.`
+                : `Residents of Purok ${assignedZones[0] ?? ''}, by household.`)
               : 'All registered residents of Barangay Tago, by purok and household.'}
           </p>
         </div>
@@ -251,24 +290,36 @@ export function ResidentsPage() {
       <Alert type="danger" message={error} onClose={() => setError('')} />
       <Alert type="success" message={success} onClose={() => setSuccess('')} />
 
-      <PurokStrip
-        zones={ZONES}
-        counts={purokCounts}
-        assignedZones={assignedZones}
-        loading={countsLoading}
-        selected={selectedZone}
-        onSelect={(z) => { setSelectedZone(z); setPage(1); }}
-      />
+      {/* Midwife: purok cards across all puroks. Health workers pick from the filter bar instead. */}
+      {!isBHW && (
+        <PurokStrip
+          zones={ZONES}
+          counts={purokCounts}
+          loading={countsLoading}
+          selected={selectedZone}
+          onSelect={(z) => { setSelectedZone(z); setPage(1); }}
+        />
+      )}
 
       <div className="toolbar">
         <form onSubmit={handleSearchSubmit} className="toolbar-search" role="search">
           <label htmlFor="search_q" className="sr-only">Search residents</label>
           <div className="input-affix has-btn">
             <span className="affix-icon">{Icons.search}</span>
-            <Input id="search_q" placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input id="search_q" placeholder="Search by name" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
             {q && (<button type="button" onClick={() => { setQ(''); setPage(1); }} className="affix-btn" aria-label="Clear search">{Icons.close}</button>)}
           </div>
         </form>
+
+        {/* Health worker with several puroks: a plain dropdown. One purok needs no choice. */}
+        {isBHW && assignedZones.length > 1 && (
+          <select className="form-select" value={selectedZone} onChange={(e) => { setSelectedZone(e.target.value); setPage(1); }} aria-label="Filter by purok">
+            <option value="">All my puroks{countsLoading ? '' : ` (${assignedZones.reduce((n, id) => n + (purokCounts[id] || 0), 0)})`}</option>
+            {ZONES.filter((z) => assignedZones.includes(z.id)).map((z) => (
+              <option key={z.id} value={z.id}>{z.name}{countsLoading || purokCounts[z.id] === undefined ? '' : ` (${purokCounts[z.id]})`}</option>
+            ))}
+          </select>
+        )}
 
         <select className="form-select" value={ageGroup} onChange={(e) => { setAgeGroup(e.target.value); setPage(1); }} aria-label="Filter by target group">
           <option value="">All target groups</option>
@@ -293,26 +344,25 @@ export function ResidentsPage() {
         </span>
       </div>
 
-      <div className="table-card">
+      <div className="table-card" ref={listTopRef} style={{ scrollMarginTop: 'calc(var(--topbar-height) + 1rem)' }}>
         <div className="table-wrap">
           <table className="table table-stack">
             <thead>
               <tr>
-                <th>Resident</th>
+                <th className="col-name">Resident</th>
                 {!byHousehold && <th>Household no.</th>}
-                <th>Purok</th>
-                <th className="num">Age</th>
-                <th>Sex</th>
-                <th>Target group</th>
-                <th>Health flags</th>
-                <th style={{ textAlign: 'right' }}><span className="sr-only">Actions</span></th>
+                {!byHousehold && <th>Purok</th>}
+                <th className="col-age">Age and sex</th>
+                <th className="col-group">Target group</th>
+                <th>Health notes</th>
+                <th className="col-actions"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={colCount + 1} style={{ padding: '0.5rem 0' }}><SkeletonList count={6} variant="row" /></td></tr>
+                <tr><td colSpan={colCount} style={{ padding: '0.5rem 0' }}><SkeletonList count={6} variant="row" /></td></tr>
               ) : residents.length === 0 ? (
-                <tr><td colSpan={colCount + 1}><EmptyState title="No residents match" description="Try another name, purok, or target group." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
+                <tr><td colSpan={colCount}><EmptyState title="No residents match" description="Try another name, purok, or target group." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
               ) : (
                 tableRows.map((row) => {
                   if (row.kind === 'group') {
@@ -321,7 +371,8 @@ export function ResidentsPage() {
                         <td colSpan={colCount - 1}>
                           <button type="button" className="group-link" onClick={() => openHousehold(row.household_id)} disabled={householdLoading}>
                             {Icons.household}
-                            <code>{row.household_no}</code>
+                            <strong className="group-family">{row.family ? `${row.family} household` : 'Household'}</strong>
+                            <code className="group-meta">{row.household_no}</code>
                             <span className="group-meta">{row.zone_name}</span>
                             <span className="group-meta">
                               {row.shown_count === row.member_count
@@ -330,31 +381,33 @@ export function ResidentsPage() {
                             </span>
                           </button>
                         </td>
-                        <td colSpan={2} style={{ textAlign: 'right' }}>
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => openHousehold(row.household_id)}>Open household</button>
+                        <td style={{ textAlign: 'right' }}>
+                          <button type="button" className="btn btn-secondary btn-sm" onClick={() => openHousehold(row.household_id)}>Open household</button>
                         </td>
                       </tr>
                     );
                   }
                   const r = row.resident;
                   return (
-                    <tr key={r.id}>
-                      <td className="tab-cell cell-name" style={{ '--tab': residentTab(r) }}>
+                    <tr key={r.id} className="row-click" onClick={(e) => { if (!e.target.closest('button')) setViewingResident(r); }}>
+                      <td className="cell-name">
                         <strong>{r.last_name}, {r.first_name} {r.middle_name || ''}</strong>
                         {r.relation_to_head === 'HEAD'
                           ? <span className="is-head">Head of household</span>
                           : <span>{RELATIONS_TO_HEAD.find((x) => x.code === r.relation_to_head)?.label || r.relation_to_head}</span>}
                       </td>
                       {!byHousehold && <td><code>{r.household_no}</code></td>}
-                      <td className="muted">{r.zone_name}</td>
-                      <td className="num">{r.age_years}<span className="faint"> yrs</span></td>
-                      <td className="muted">{r.sex === 'M' ? 'Male' : 'Female'}</td>
+                      {!byHousehold && <td className="muted">{r.zone_name}</td>}
+                      <td className="cell-age">
+                        <strong>{r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months ?? 0} mos`}</strong>
+                        <span>{r.sex === 'M' ? 'Male' : 'Female'}</span>
+                      </td>
                       <td>{groupChip(r.age_risk_group)}</td>
-                      <td>{flagsFor(r)}</td>
+                      <td className="cell-notes">{flagsFor(r)}</td>
                       <td>
                         <div className="row-actions">
-                          <IconButton icon={Icons.view} onClick={() => setViewingResident(r)} title="View profile" />
-                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate record" variant="ghost-danger" /></>)}
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setViewingResident(r)} aria-label={`View profile of ${r.first_name} ${r.last_name}`}>View</button>
+                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate (moved out or deceased)" variant="ghost-danger" /></>)}
                         </div>
                       </td>
                     </tr>
@@ -369,16 +422,20 @@ export function ResidentsPage() {
           pageSize={pageSize}
           total={total}
           unit={byHousehold ? 'households' : 'residents'}
-          onPageChange={(p) => setPage(p)}
+          onPageChange={changePage}
+          pageSizeOptions={[10, 15, 25, 50]}
+          onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
         />
       </div>
 
       <Modal
         isOpen={!!viewingHousehold}
         onClose={() => setViewingHousehold(null)}
-        title={viewingHousehold ? `Household ${viewingHousehold.household_no}` : 'Household'}
+        title={viewingHousehold
+          ? `${(viewingHousehold.members.find((m) => m.relation_to_head === 'HEAD') || viewingHousehold.members[0] || {}).last_name || ''} household`.trim()
+          : 'Household'}
         subtitle={viewingHousehold
-          ? `${viewingHousehold.zone_name} · ${viewingHousehold.members.length} ${viewingHousehold.members.length === 1 ? 'member' : 'members'} · visited ${viewingHousehold.date_of_visit}`
+          ? `${viewingHousehold.household_no} · ${viewingHousehold.zone_name} · ${viewingHousehold.members.length} ${viewingHousehold.members.length === 1 ? 'member' : 'members'} · visited ${fmtDate(viewingHousehold.date_of_visit)}`
           : ''}
         isLarge
         footer={
@@ -386,53 +443,58 @@ export function ResidentsPage() {
         }
       >
         {viewingHousehold && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="kv-grid">
-              <div className="kv"><span className="kv-label">Address</span><span className="kv-value">{viewingHousehold.address_line || 'Not stated'}</span></div>
-              <div className="kv"><span className="kv-label">Barangay</span><span className="kv-value">{viewingHousehold.barangay}, {viewingHousehold.municipality_city}</span></div>
-              <div className="kv"><span className="kv-label">Water source</span><span className="kv-value">{WATER_SOURCES.find((w) => w.code === viewingHousehold.water_source_code)?.label || 'Not stated'}</span></div>
-              <div className="kv"><span className="kv-label">Toilet facility</span><span className="kv-value">{TOILET_FACILITIES.find((t) => t.code === viewingHousehold.toilet_facility_code)?.label || 'Not stated'}</span></div>
-              <div className="kv"><span className="kv-label">4Ps household</span><span className="kv-value">{viewingHousehold.is_4ps_household ? `Yes${viewingHousehold.fourps_household_id ? ` · ${viewingHousehold.fourps_household_id}` : ''}` : 'No'}</span></div>
-              <div className="kv"><span className="kv-label">Reviewed by</span><span className="kv-value">{viewingHousehold.reviewed_by_name || 'Pending review'}</span></div>
-            </div>
+          <div className="sheet-body">
+            <section className="sheet-section">
+              <h3>Home and facilities</h3>
+              <dl className="info-list">
+                <Row label="Address" muted={!viewingHousehold.address_line}>{viewingHousehold.address_line || 'Not stated'}</Row>
+                <Row label="Barangay">{viewingHousehold.barangay}, {viewingHousehold.municipality_city}</Row>
+                <Row label="Water source">{WATER_SOURCES.find((w) => w.code === viewingHousehold.water_source_code)?.label || 'Not stated'}</Row>
+                <Row label="Toilet">{TOILET_FACILITIES.find((t) => t.code === viewingHousehold.toilet_facility_code)?.label || 'Not stated'}</Row>
+                <Row label="4Ps household" muted={!viewingHousehold.is_4ps_household}>{viewingHousehold.is_4ps_household ? `Yes${viewingHousehold.fourps_household_id ? `, ${viewingHousehold.fourps_household_id}` : ''}` : 'No'}</Row>
+                <Row label="Reviewed by" muted={!viewingHousehold.reviewed_by_name}>{viewingHousehold.reviewed_by_name || 'Pending review'}</Row>
+              </dl>
+            </section>
 
-            <div className="panel">
-              <div className="panel-head">Family members ({viewingHousehold.members.length})</div>
-              <div className="table-wrap">
+            <section className="sheet-section">
+              <h3>Family members ({viewingHousehold.members.length})</h3>
+              <div className="table-wrap sheet-table-wrap">
                 <table className="table table-stack">
                   <thead>
                     <tr>
-                      <th>Member</th>
-                      <th style={{ width: '130px' }}>Relation</th>
-                      <th style={{ width: '80px' }} className="num">Age</th>
-                      <th style={{ width: '90px' }}>Sex</th>
-                      <th style={{ width: '190px' }}>Target group</th>
-                      <th style={{ width: '170px' }}>Health flags</th>
-                      {isBHW && <th style={{ width: '110px', textAlign: 'right' }}>Action</th>}
+                      <th className="col-name">Member</th>
+                      <th className="col-age">Age and sex</th>
+                      <th className="col-group">Target group</th>
+                      <th>Health notes</th>
+                      <th className="col-actions"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {viewingHousehold.members.map((m) => (
-                      <tr key={m.id}>
-                        <td className="tab-cell cell-name" style={{ '--tab': residentTab(m) }}>
-                          <strong>{m.last_name}, {m.first_name} {m.middle_name || ''}</strong>
-                        </td>
-                        <td><span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{String(m.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span></td>
-                        <td className="num">{m.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
-                        <td><span style={{ color: 'var(--muted)' }}>{m.sex === 'M' ? 'Male' : 'Female'}</span></td>
-                        <td>{groupChip(m.age_risk_group)}</td>
-                        <td>{flagsFor(m, false)}</td>
-                        {isBHW && (
-                          <td style={{ textAlign: 'right' }}>
-                            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setViewingHousehold(null); handleOpenEdit(m); }}>Edit</button>
+                    {viewingHousehold.members.map((m) => {
+                      const member = { ...m, household_no: viewingHousehold.household_no, zone_name: viewingHousehold.zone_name };
+                      return (
+                        <tr key={m.id} className="row-click" onClick={(e) => { if (!e.target.closest('button')) { setViewingHousehold(null); setViewingResident(member); } }}>
+                          <td className="cell-name">
+                            <strong>{m.last_name}, {m.first_name} {m.middle_name || ''}</strong>
+                            {m.relation_to_head === 'HEAD' ? <span className="is-head">Head of household</span> : <span>{relationLabel(m.relation_to_head)}</span>}
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="cell-age"><strong>{ageText(m)}</strong><span>{m.sex === 'M' ? 'Male' : 'Female'}</span></td>
+                          <td>{groupChip(m.age_risk_group)}</td>
+                          <td className="cell-notes">{flagsFor(m)}</td>
+                          <td>
+                            <div className="row-actions">
+                              {isBHW
+                                ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setViewingHousehold(null); handleOpenEdit(member); }}>Edit</button>
+                                : <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setViewingHousehold(null); setViewingResident(member); }}>View</button>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            </div>
+            </section>
           </div>
         )}
       </Modal>
@@ -440,8 +502,8 @@ export function ResidentsPage() {
       <Modal
         isOpen={!!viewingResident}
         onClose={() => setViewingResident(null)}
-        title={viewingResident ? `${viewingResident.first_name} ${viewingResident.last_name}` : 'Resident profile'}
-        subtitle={viewingResident ? `${viewingResident.zone_name}, household ${viewingResident.household_no}` : ''}
+        title={viewingResident ? `${viewingResident.last_name}, ${viewingResident.first_name} ${viewingResident.middle_name || ''}`.trim() : 'Resident profile'}
+        subtitle={viewingResident ? `${viewingResident.zone_name} · ${viewingResident.household_no}` : ''}
         isLarge
         footer={
           <>
@@ -452,36 +514,54 @@ export function ResidentsPage() {
           </>
         }
       >
-        {viewingResident && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="kv-grid">
-              <div className="kv"><span className="kv-label">Full name</span><span className="kv-value strong">{viewingResident.last_name}, {viewingResident.first_name} {viewingResident.middle_name || ''}</span></div>
-              <div className="kv"><span className="kv-label">Household number</span><span className="kv-value"><code>{viewingResident.household_no}</code></span></div>
-              <div className="kv"><span className="kv-label">Assigned purok</span><span className="kv-value">{viewingResident.zone_name}</span></div>
-              <div className="kv"><span className="kv-label">Relation to head</span><span className="kv-value">{RELATIONS_TO_HEAD.find((x) => x.code === viewingResident.relation_to_head)?.label || viewingResident.relation_to_head}</span></div>
-              <div className="kv"><span className="kv-label">Birth date</span><span className="kv-value">{viewingResident.birth_date}</span></div>
-              <div className="kv"><span className="kv-label">Age</span><span className="kv-value">{viewingResident.age_years} yrs, {viewingResident.age_months} mos</span></div>
-              <div className="kv"><span className="kv-label">Sex</span><span className="kv-value">{viewingResident.sex === 'M' ? 'Male' : 'Female'}</span></div>
-              <div className="kv"><span className="kv-label">Civil status</span><span className="kv-value">{CIVIL_STATUSES.find((x) => x.code === viewingResident.civil_status_code)?.label || viewingResident.civil_status_code}</span></div>
-              <div className="kv"><span className="kv-label">Education</span><span className="kv-value">{EDUCATION_LEVELS.find((x) => x.code === viewingResident.education_code)?.label || viewingResident.education_code}</span></div>
-              <div className="kv"><span className="kv-label">Occupation</span><span className="kv-value">{viewingResident.occupation || 'Not stated'}</span></div>
-              <div className="kv"><span className="kv-label">PhilHealth ID</span><span className="kv-value">{viewingResident.philhealth_id || 'Not enrolled'}</span></div>
-              <div className="kv"><span className="kv-label">Target group</span><span className="kv-value">{AGE_RISK_GROUPS[viewingResident.age_risk_group] || viewingResident.age_risk_group}</span></div>
-            </div>
-
-            <div className="panel">
-              <div className="panel-head">Health and program status</div>
-              <div className="panel-body">
-                <div className="kv-grid">
-                  <div className="kv"><span className="kv-label">Pregnancy</span><span className="kv-value">{viewingResident.is_pregnant ? `Yes, LMP ${viewingResident.lmp_date || 'not recorded'}` : 'No'}</span></div>
-                  <div className="kv"><span className="kv-label">Family planning</span><span className="kv-value">{viewingResident.uses_fp ? `Active, ${viewingResident.fp_method_code}` : 'Not using'}</span></div>
-                  <div className="kv"><span className="kv-label">PWD</span><span className="kv-value">{viewingResident.is_pwd ? (viewingResident.disability_type || viewingResident.disability_type_code) : 'No'}</span></div>
-                  <div className="kv"><span className="kv-label">Chronic conditions</span><span className="kv-value">{(viewingResident.medical_conditions && viewingResident.medical_conditions.length > 0) ? viewingResident.medical_conditions.map((c) => c.condition_code).join(', ') : 'None recorded'}</span></div>
+        {viewingResident && (() => {
+          const r = viewingResident;
+          const conditions = (r.medical_conditions || []).map((c) => CONDITION_NAME[c.condition_code] || c.other_specify || 'Other condition');
+          const fp = FP_METHODS.find((m) => m.code === r.fp_method_code)?.label || r.fp_method_code;
+          return (
+            <div className="sheet-body">
+              <div className="sheet-summary">
+                <span className="sheet-facts">{ageText(r)} · {r.sex === 'M' ? 'Male' : 'Female'} · {r.relation_to_head === 'HEAD' ? 'Head of household' : relationLabel(r.relation_to_head)}</span>
+                <div className="flags">
+                  {groupChip(r.age_risk_group)}
+                  {r.is_pregnant && <span className="flag flag-maternal">Pregnant</span>}
+                  {r.is_pwd && <span className="flag flag-pwd">With disability</span>}
                 </div>
               </div>
+
+              <section className="sheet-section">
+                <h3>Health and programs</h3>
+                <dl className="info-list">
+                  <Row label="Pregnancy" muted={!r.is_pregnant}>{r.is_pregnant ? `Pregnant, last period ${fmtDate(r.lmp_date) || 'not recorded'}` : 'Not pregnant'}</Row>
+                  <Row label="Family planning" muted={!r.uses_fp}>{r.uses_fp ? fp : 'Not using'}</Row>
+                  <Row label="Disability" muted={!r.is_pwd}>{r.is_pwd ? (r.disability_type || r.disability_type_code) : 'None'}</Row>
+                  <Row label="Conditions" muted={conditions.length === 0}>{conditions.length ? conditions.join(', ') : 'None recorded'}</Row>
+                  <Row label="PhilHealth ID" muted={!r.philhealth_id}>{r.philhealth_id || 'Not enrolled'}</Row>
+                </dl>
+              </section>
+
+              <section className="sheet-section">
+                <h3>Household</h3>
+                <dl className="info-list">
+                  <Row label="Household no.">{r.household_no}</Row>
+                  <Row label="Purok">{r.zone_name}</Row>
+                  <Row label="Relation to head">{relationLabel(r.relation_to_head)}</Row>
+                </dl>
+              </section>
+
+              <section className="sheet-section">
+                <h3>Personal details</h3>
+                <dl className="info-list">
+                  <Row label="Full name">{r.last_name}, {r.first_name} {r.middle_name || ''}</Row>
+                  <Row label="Birth date">{fmtDate(r.birth_date)} ({r.age_years} yrs, {r.age_months} mos)</Row>
+                  <Row label="Civil status">{CIVIL_STATUSES.find((x) => x.code === r.civil_status_code)?.label || r.civil_status_code || 'Not stated'}</Row>
+                  <Row label="Education">{EDUCATION_LEVELS.find((x) => x.code === r.education_code)?.label || r.education_code || 'Not stated'}</Row>
+                  <Row label="Occupation" muted={!r.occupation}>{r.occupation || 'Not stated'}</Row>
+                </dl>
+              </section>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
 
       <Modal
@@ -608,7 +688,7 @@ export function ResidentsPage() {
         {deactivatingResident && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="notice notice-danger">
-              <Trash2 className="h-[18px] w-[18px] shrink-0" style={{ color: 'var(--negative)' }} />
+              <UserX className="h-[18px] w-[18px] shrink-0" style={{ color: 'var(--negative)' }} />
               <div>
                 <h4 style={{ fontSize: 'var(--fs-base)', fontWeight: 700 }}>Deactivate {deactivatingResident.first_name} {deactivatingResident.last_name}?</h4>
                 <p style={{ fontSize: 'var(--fs-sm)', marginTop: '3px' }}>They will no longer appear in the resident list or the program masterlists. Their record and change history are kept.</p>

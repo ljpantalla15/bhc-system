@@ -291,3 +291,38 @@ test('Bruno 05-Users: List (200, 403), Create (201, 400), Update (200, 404)', as
     .send({ full_name: 'Ghost' });
   assert.equal(resUpdate404.status, 404);
 });
+
+test('Bruno 06-Account: change own password (401, 400, 200) and restore the demo password', async () => {
+  // 01-change-password-unauthenticated
+  const resNoAuth = await request(app)
+    .post('/api/auth/password')
+    .send({ current_password: 'Demo#12345', new_password: 'Temp#12345' });
+  assert.equal(resNoAuth.status, 401);
+  assert.equal(resNoAuth.body.error.code, 'unauthenticated');
+
+  // 02-change-password-wrong-current
+  const resWrong = await request(app)
+    .post('/api/auth/password')
+    .set('Authorization', `Bearer ${midwifeToken}`)
+    .send({ current_password: 'Wrong#00000', new_password: 'Temp#12345' });
+  assert.equal(resWrong.status, 400);
+  assert.equal(resWrong.body.error.details[0].field, 'current_password');
+
+  // 03-change-password-success
+  const resOk = await request(app)
+    .post('/api/auth/password')
+    .set('Authorization', `Bearer ${midwifeToken}`)
+    .send({ current_password: 'Demo#12345', new_password: 'Temp#12345' });
+  assert.equal(resOk.status, 200);
+  assert.equal(resOk.body.message, 'Password changed.');
+
+  // 04-change-password-restore
+  const resRestore = await request(app)
+    .post('/api/auth/password')
+    .set('Authorization', `Bearer ${midwifeToken}`)
+    .send({ current_password: 'Temp#12345', new_password: 'Demo#12345' });
+  assert.equal(resRestore.status, 200);
+
+  const relogin = await request(app).post('/api/auth/login').send({ username: 'midwife1', password: 'Demo#12345' });
+  assert.equal(relogin.status, 200);
+});

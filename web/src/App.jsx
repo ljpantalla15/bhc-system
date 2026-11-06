@@ -8,6 +8,7 @@ import { HouseholdFormPage } from './pages/HouseholdFormPage.jsx';
 import { ResidentsPage } from './pages/ResidentsPage.jsx';
 import { MasterlistsPage } from './pages/MasterlistsPage.jsx';
 import { UsersPage } from './pages/UsersPage.jsx';
+import { HomePage } from './pages/HomePage.jsx';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, isAuthenticated } = useAuth();
@@ -17,9 +18,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    if (user?.role === 'ADMIN') return <Navigate to="/users" replace />;
-    if (user?.role === 'BHW') return <Navigate to="/households/new" replace />;
-    return <Navigate to="/residents" replace />;
+    return <Navigate to={user?.role === 'ADMIN' ? '/users' : '/'} replace />;
   }
 
   return children;
@@ -33,8 +32,7 @@ function HomeRedirect() {
   }
 
   if (user?.role === 'ADMIN') return <Navigate to="/users" replace />;
-  if (user?.role === 'BHW') return <Navigate to="/households/new" replace />;
-  return <Navigate to="/residents" replace />;
+  return <HomePage />;
 }
 
 export function App() {

@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { api } from '../api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Alert.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { Pagination } from '../components/Pagination.jsx';
-import { Skeleton, SkeletonList } from '../components/Skeleton.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 import { EmptyState } from '../components/EmptyState.jsx';
-import { KpiStrip } from '../components/Card.jsx';
 import { Button } from '../components/Button.jsx';
-import { Input, FormGroup, FormCheck } from '../components/Form.jsx';
+import { Input, FormGroup } from '../components/Form.jsx';
 import { ZONES } from '../constants.js';
 import { showToast } from '../components/Toast.jsx';
-import { Plus, Pencil, Check } from 'lucide-react';
+import { Plus, Pencil, Check, Search, X, Eye, EyeOff, RefreshCw, AlertTriangle, KeyRound } from 'lucide-react';
 
 const ROLES = [
   { code: 'BHW', label: 'Health worker', desc: 'Encodes and edits residents in assigned puroks.' },
@@ -18,12 +18,56 @@ const ROLES = [
   { code: 'ADMIN', label: 'Administrator', desc: 'Manages staff accounts. No resident data.' },
 ];
 const ROLE_LABEL = { BHW: 'Health worker', MIDWIFE: 'Midwife', ADMIN: 'Administrator' };
+const USERNAME_RE = /^[a-z0-9._-]{3,50}$/;
+const PAGE_SIZE = 15;
 
-function RolePicker({ value, onChange }) {
+/* What each account can reach, in one line. */
+const coverage = (u) => {
+  if (u.role === 'MIDWIFE') return 'All puroks, read only';
+  if (u.role === 'ADMIN') return 'Staff accounts only';
+  const z = u.zone_ids || [];
+  return z.length ? z.map((id) => `Purok ${id}`).join(', ') : null;
+};
+
+/* "Today, 9:10 AM", "Yesterday, 4:00 PM", or a short date. */
+const lastSeen = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const start = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((start(new Date()) - start(d)) / 86400000);
+  if (days === 0) return { main: 'Today', sub: time };
+  if (days === 1) return { main: 'Yesterday', sub: time };
+  if (days < 7) return { main: `${days} days ago`, sub: d.toLocaleDateString([], { month: 'short', day: 'numeric' }) };
+  return { main: d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }), sub: time };
+};
+
+const initials = (name) => {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (name || 'U').slice(0, 2).toUpperCase();
+};
+
+/* "Ana Reyes" -> "ana.reyes" */
+const suggestUsername = (fullName) => {
+  const parts = fullName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z\s]/g, '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  return (parts.length === 1 ? parts[0] : `${parts[0]}.${parts[parts.length - 1]}`).slice(0, 50);
+};
+
+/* A readable random password: no look-alike characters (0/O, 1/l/I). */
+const generatePassword = () => {
+  const letters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '23456789';
+  const pick = (set, n) => Array.from(crypto.getRandomValues(new Uint32Array(n)), (v) => set[v % set.length]).join('');
+  return `${pick(letters, 4)}-${pick(digits, 4)}-${pick(letters, 4)}`;
+};
+
+function RolePicker({ value, onChange, disabled }) {
   return (
     <div className="choice-grid" role="radiogroup" aria-label="Role">
       {ROLES.map((r) => (
-        <button key={r.code} type="button" role="radio" aria-checked={value === r.code} className="choice-card" onClick={() => onChange(r.code)}>
+        <button key={r.code} type="button" role="radio" aria-checked={value === r.code} className="choice-card" disabled={disabled} onClick={() => onChange(r.code)}>
           <strong>{r.label}</strong><span>{r.desc}</span>
         </button>
       ))}
@@ -31,291 +75,417 @@ function RolePicker({ value, onChange }) {
   );
 }
 
+function PurokPicker({ value = [], onToggle, error }) {
+  return (
+    <>
+      <div className="chip-row" role="group" aria-label="Assigned puroks">
+        {ZONES.map((z) => {
+          const on = value.includes(z.id);
+          return (
+            <button key={z.id} type="button" className={`condition-chip ${on ? 'active' : ''}`} aria-pressed={on} onClick={() => onToggle(z.id)}>
+              <span className="chip-mark">{on ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</span>
+              <span>{z.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="field-error">{error}</p>}
+    </>
+  );
+}
+
+function PasswordField({ value, onChange, placeholder, autoFocus }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="pw-field">
+      <div className="input-affix has-btn">
+        <Input type={show ? 'text' : 'password'} value={value} onChange={(e) => onChange(e.target.value)} minLength={8} autoComplete="new-password" placeholder={placeholder} autoFocus={autoFocus} />
+        <button type="button" className="affix-btn" onClick={() => setShow((s) => !s)} aria-label={show ? 'Hide password' : 'Show password'}>
+          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+      <Button variant="secondary" size="sm" type="button" iconLeft={<RefreshCw className="h-3.5 w-3.5" />} onClick={() => { onChange(generatePassword()); setShow(true); }}>Generate</Button>
+    </div>
+  );
+}
+
+const emptyNew = (zone) => ({ username: '', usernameTouched: false, password: '', full_name: '', role: 'BHW', zone_ids: zone ? [zone] : [] });
+
 export function UsersPage() {
-  const [users, setUsers] = useState([]);
+  const { user: me } = useAuth();
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const [roleFilter, setRoleFilter] = useState('');
-  const [includeInactive, setIncludeInactive] = useState(true);
+  const [showInactive, setShowInactive] = useState(true);
+  const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [activeTotal, setActiveTotal] = useState(0);
-  const pageSize = 15;
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState(emptyNew());
+  const [createTried, setCreateTried] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showPwReset, setShowPwReset] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'BHW', zone_ids: [1] });
-
+  /* Staff lists are small, so every account is loaded once (a page of 100 at a
+     time) and filtered here. Counts and the purok coverage then always agree. */
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams();
-      if (roleFilter) params.set('role', roleFilter);
-      params.set('include_inactive', String(includeInactive));
-      params.set('page', String(page));
-      params.set('page_size', String(pageSize));
-      const res = await api(`/api/users?${params.toString()}`);
-      setUsers(res.items || []);
-      setTotal(res.total || 0);
+      const all = [];
+      for (let p = 1; p <= 50; p += 1) {
+        const res = await api(`/api/users?include_inactive=true&page=${p}&page_size=100`);
+        const items = res.items || [];
+        all.push(...items);
+        if (items.length === 0 || p * 100 >= (res.total ?? 0)) break;
+      }
+      setAllUsers(all);
     } catch (err) {
-      setError(err.message || 'Failed to load user accounts.');
+      setError(err.message || 'Staff accounts could not be loaded.');
     } finally { setLoading(false); }
-  }, [roleFilter, includeInactive, page]);
+  }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  // The KPI strip reports whole-population counts, so the active total is
-  // fetched separately (page rows alone would not reconcile with the total).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const params = new URLSearchParams();
-        if (roleFilter) params.set('role', roleFilter);
-        params.set('include_inactive', 'false');
-        params.set('page', '1');
-        params.set('page_size', '1');
-        const res = await api(`/api/users?${params.toString()}`);
-        if (!cancelled) setActiveTotal(res.total || 0);
-      } catch {
-        if (!cancelled) setActiveTotal(0);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [roleFilter]);
+  const active = allUsers.filter((u) => u.is_active);
+  const counts = {
+    BHW: active.filter((u) => u.role === 'BHW').length,
+    MIDWIFE: active.filter((u) => u.role === 'MIDWIFE').length,
+    ADMIN: active.filter((u) => u.role === 'ADMIN').length,
+    off: allUsers.length - active.length,
+  };
+
+  /* Which active health workers cover each purok. */
+  const purokCover = ZONES.map((z) => ({ ...z, workers: active.filter((u) => u.role === 'BHW' && (u.zone_ids || []).includes(z.id)) }));
+  const uncovered = purokCover.filter((z) => z.workers.length === 0);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allUsers
+      .filter((u) => (showInactive || u.is_active))
+      .filter((u) => !roleFilter || u.role === roleFilter)
+      .filter((u) => !q || u.full_name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q))
+      .sort((a, b) => Number(b.is_active) - Number(a.is_active) || a.full_name.localeCompare(b.full_name));
+  }, [allUsers, showInactive, roleFilter, query]);
+  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const openCreate = (zone) => { setNewUser(emptyNew(zone)); setCreateTried(false); setIsCreateOpen(true); };
+  const openEdit = (u) => { setEditingUser({ ...u, zone_ids: u.zone_ids || [], password: '' }); setShowPwReset(false); };
+
+  /* ---------- create */
+  const createErrors = {
+    full_name: !newUser.full_name.trim() && 'Enter the full name.',
+    username: !USERNAME_RE.test(newUser.username) && '3 to 50 lowercase letters, numbers, dot, underscore or hyphen.',
+    taken: allUsers.some((u) => u.username === newUser.username) && 'This username is already used.',
+    password: newUser.password.length < 8 && 'At least 8 characters.',
+    zones: newUser.role === 'BHW' && newUser.zone_ids.length === 0 && 'Pick at least one purok.',
+  };
+  const createOk = !Object.values(createErrors).some(Boolean);
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    setCreateTried(true);
+    if (!createOk) return;
     setActionLoading(true);
-    setError('');
     try {
-      const payload = { username: newUser.username.trim().toLowerCase(), password: newUser.password, full_name: newUser.full_name.trim(), role: newUser.role };
+      const payload = { username: newUser.username, password: newUser.password, full_name: newUser.full_name.trim(), role: newUser.role };
       if (newUser.role === 'BHW') payload.zone_ids = newUser.zone_ids;
       await api('/api/users', { method: 'POST', body: JSON.stringify(payload) });
-      showToast({ type: 'success', message: `User account "${payload.username}" created.` });
+      showToast({ type: 'success', message: `Account "${payload.username}" created. Give ${payload.full_name.split(' ')[0]} the username and password.` });
       setIsCreateOpen(false);
-      setNewUser({ username: '', password: '', full_name: '', role: 'BHW', zone_ids: [1] });
       fetchUsers();
     } catch (err) {
-      setError(err.message || 'Failed to create user account.');
-      showToast({ type: 'danger', message: 'Failed to create user account.' });
+      showToast({ type: 'danger', message: err.message || 'The account could not be created.' });
     } finally { setActionLoading(false); }
   };
+
+  /* ---------- edit */
+  const isSelf = editingUser && me && editingUser.id === me.id;
+  const editErrors = editingUser ? {
+    full_name: !editingUser.full_name.trim() && 'Enter the full name.',
+    password: showPwReset && editingUser.password.length < 8 && 'At least 8 characters.',
+    zones: editingUser.role === 'BHW' && editingUser.zone_ids.length === 0 && 'Pick at least one purok.',
+  } : {};
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    if (Object.values(editErrors).some(Boolean)) return;
     setActionLoading(true);
-    setError('');
     try {
-      const payload = { full_name: editingUser.full_name.trim(), role: editingUser.role, is_active: editingUser.is_active };
-      if (editingUser.password && editingUser.password.trim()) payload.password = editingUser.password.trim();
-      if (editingUser.role === 'BHW') payload.zone_ids = editingUser.zone_ids || [];
+      const payload = { full_name: editingUser.full_name.trim() };
+      if (!isSelf) { payload.role = editingUser.role; payload.is_active = editingUser.is_active; }
+      if (showPwReset && editingUser.password) payload.password = editingUser.password;
+      if (editingUser.role === 'BHW') payload.zone_ids = editingUser.zone_ids;
       await api(`/api/users/${editingUser.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-      showToast({ type: 'success', message: 'User account updated successfully.' });
+      showToast({ type: 'success', message: `${editingUser.full_name}'s account was updated.` });
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
-      setError(err.message || 'Failed to update user account.');
-      showToast({ type: 'danger', message: 'Failed to update user account.' });
+      showToast({ type: 'danger', message: err.message || 'The account could not be updated.' });
     } finally { setActionLoading(false); }
   };
 
-  const handleZoneToggle = (zoneId, isCreating) => {
-    if (isCreating) {
-      setNewUser((prev) => {
-        const current = prev.zone_ids || [];
-        const updated = current.includes(zoneId) ? current.filter((z) => z !== zoneId) : [...current, zoneId];
-        return { ...prev, zone_ids: updated };
-      });
-    } else {
-      setEditingUser((prev) => {
-        const current = prev.zone_ids || [];
-        const updated = current.includes(zoneId) ? current.filter((z) => z !== zoneId) : [...current, zoneId];
-        return { ...prev, zone_ids: updated };
-      });
-    }
-  };
+  const toggleZone = (setter) => (id) => setter((prev) => ({
+    ...prev,
+    zone_ids: prev.zone_ids.includes(id) ? prev.zone_ids.filter((z) => z !== id) : [...prev.zone_ids, id].sort(),
+  }));
 
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    const parts = name.trim().split(' ');
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  };
-
-  const getRoleBadge = (role) => {
-    switch (role) {
-      case 'ADMIN': return <span className="badge badge-slate">Administrator</span>;
-      case 'MIDWIFE': return <span className="badge badge-slate">Midwife</span>;
-      case 'BHW': return <span className="badge badge-slate">BHW</span>;
-      default: return <span className="badge badge-slate">{role}</span>;
-    }
-  };
-
-  const renderSkeletonRows = () => (
-    <tr><td colSpan={6} style={{ padding: '0.5rem 0' }}><SkeletonList count={5} variant="row" /></td></tr>
-  );
+  const scrollToCoverage = () => document.getElementById('purok-coverage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   return (
-    <div className="page-stack">
+    <div className="page-stack staff-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">Staff accounts</h1>
-          <p className="page-subtitle">Who can sign in, what role they have, and which puroks each health worker covers.</p>
+          <p className="page-subtitle">Who can sign in, what they can do, and which puroks each health worker covers.</p>
         </div>
         <div className="page-actions">
-          <Button variant="primary" onClick={() => setIsCreateOpen(true)} iconLeft={<Plus className="h-4 w-4" />}>Create account</Button>
+          <Button variant="primary" onClick={() => openCreate()} iconLeft={<Plus className="h-4 w-4" />}>Create account</Button>
         </div>
       </div>
 
       <Alert type="danger" message={error} onClose={() => setError('')} />
-      <Alert type="success" message={success} onClose={() => setSuccess('')} />
 
-      <KpiStrip
-        items={[
-          { label: 'Accounts', value: total, sub: roleFilter ? `${ROLE_LABEL[roleFilter]} accounts` : 'all roles' },
-          { label: 'Active', value: activeTotal, sub: 'can sign in to the system' },
-          { label: 'Deactivated', value: Math.max(total - activeTotal, 0), sub: 'sessions revoked, records kept' },
-        ]}
-      />
-
-      <div className="toolbar">
-        <div className="seg-control" role="group" aria-label="Filter by role">
-          {[{ code: '', label: 'All roles' }, ...ROLES].map((r) => (
-            <button key={r.code || 'all'} type="button" className={`seg-btn ${roleFilter === r.code ? 'on' : ''}`} aria-pressed={roleFilter === r.code} onClick={() => { setRoleFilter(r.code); setPage(1); }}>{r.label}</button>
-          ))}
+      {!loading && uncovered.length > 0 && (
+        <div className="alert alert-warning" role="status">
+          <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+          <div style={{ flex: 1 }}>
+            <strong>
+              {uncovered.length === 1
+                ? `${uncovered[0].name} has`
+                : `Puroks ${uncovered.slice(0, -1).map((z) => z.id).join(', ')} and ${uncovered[uncovered.length - 1].id} have`} no active health worker.
+            </strong>{' '}
+            <span className="hide-sm">Residents there cannot be encoded or updated until someone is assigned.</span>
+            <button type="button" className="link-btn show-sm" onClick={scrollToCoverage}>See coverage</button>
+          </div>
         </div>
-        <label className="form-check">
-          <input type="checkbox" checked={includeInactive} onChange={(e) => { setIncludeInactive(e.target.checked); setPage(1); }} />
-          <span className="form-check-label">Show deactivated</span>
-        </label>
-        <span className="toolbar-meta"><strong>{users.length}</strong> of <strong>{total}</strong> accounts</span>
-      </div>
+      )}
 
-      <div className="table-card">
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Staff member</th>
-                <th>Role</th>
-                <th>Puroks</th>
-                <th>Status</th>
-                <th>Last sign-in</th>
-                <th style={{ textAlign: 'right' }}><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? renderSkeletonRows() : users.length === 0 ? (
-                <tr><td colSpan={6}><EmptyState title="No accounts match" description="Try another role, or show deactivated accounts." actionLabel={roleFilter ? 'Clear filter' : 'Create account'} action={roleFilter ? () => setRoleFilter('') : () => setIsCreateOpen(true)} /></td></tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.65 }}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
-                        <div className="avatar-cell">{getInitials(u.full_name)}</div>
-                        <div className="cell-name"><strong>{u.full_name}</strong><span><code>{u.username}</code></span></div>
-                      </div>
-                    </td>
-                    <td>{ROLE_LABEL[u.role] || u.role}</td>
-                    <td>
-                      {u.role === 'BHW' ? (
-                        u.zone_ids && u.zone_ids.length > 0
-                          ? <div className="flags">{u.zone_ids.map((zId) => <span key={zId} className="badge badge-teal">Purok {zId}</span>)}</div>
-                          : <span className="badge badge-amber">None assigned</span>
-                      ) : <span className="faint">{u.role === 'MIDWIFE' ? 'All puroks' : 'Not applicable'}</span>}
-                    </td>
-                    <td>{u.is_active ? <span className="badge badge-positive badge-dot">Active</span> : <span className="badge badge-slate badge-dot">Deactivated</span>}</td>
-                    <td className="muted">{u.last_login_at ? new Date(u.last_login_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Never'}</td>
-                    <td style={{ textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => setEditingUser({ ...u, password: '' })} iconLeft={<Pencil className="h-3.5 w-3.5" />}>Edit</Button></td>
+      <div className="staff-layout">
+        <div className="staff-main">
+          <div className="staff-summary" role="group" aria-label="Filter by role">
+            {[
+              { code: '', label: 'All accounts', short: 'All', n: allUsers.length },
+              { code: 'BHW', label: 'Health workers', short: 'Health workers', n: counts.BHW },
+              { code: 'MIDWIFE', label: 'Midwives', short: 'Midwives', n: counts.MIDWIFE },
+              { code: 'ADMIN', label: 'Administrators', short: 'Admins', n: counts.ADMIN },
+            ].map((r) => (
+              <button key={r.code || 'all'} type="button" className="staff-stat" aria-pressed={roleFilter === r.code} onClick={() => { setRoleFilter(r.code); setPage(1); }}>
+                <span className="hide-sm">{r.label}</span>
+                <span className="show-sm">{r.short}</span>
+                <strong>{loading ? '–' : r.n}</strong>
+              </button>
+            ))}
+          </div>
+
+          <div className="toolbar">
+            <div className="toolbar-search">
+              <div className="input-affix has-btn">
+                <span className="affix-icon"><Search className="h-4 w-4" /></span>
+                <Input placeholder="Search name or username" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} aria-label="Search staff" />
+                {query && <button type="button" className="affix-btn" onClick={() => setQuery('')} aria-label="Clear search"><X className="h-4 w-4" /></button>}
+              </div>
+            </div>
+            <label className="form-check">
+              <input type="checkbox" checked={showInactive} onChange={(e) => { setShowInactive(e.target.checked); setPage(1); }} />
+              <span className="form-check-label">Show deactivated ({counts.off})</span>
+            </label>
+          </div>
+
+          <div className="table-card">
+            <div className="table-wrap">
+              <table className="table table-stack staff-table">
+                <thead>
+                  <tr>
+                    <th className="col-staff">Staff member</th>
+                    <th>Role and coverage</th>
+                    <th className="col-status">Status</th>
+                    <th className="col-seen">Last sign-in</th>
+                    <th className="col-actions"><span className="sr-only">Actions</span></th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={5} style={{ padding: '0.5rem 0' }}><SkeletonList count={4} variant="row" /></td></tr>
+                  ) : pageRows.length === 0 ? (
+                    <tr><td colSpan={5}><EmptyState title="No accounts match" description="Try another role or name." actionLabel="Clear filters" action={() => { setRoleFilter(''); setQuery(''); setShowInactive(true); }} /></td></tr>
+                  ) : pageRows.map((u) => {
+                    const cov = coverage(u);
+                    const seen = lastSeen(u.last_login_at);
+                    return (
+                      <tr key={u.id} className={`row-click ${u.is_active ? '' : 'is-off'}`} onClick={(e) => { if (!e.target.closest('button')) openEdit(u); }}>
+                        <td className="cell-staff">
+                          <div className="avatar-cell" aria-hidden="true">{initials(u.full_name)}</div>
+                          <div className="cell-name">
+                            <strong>{u.full_name}{me && u.id === me.id && <em className="you-tag">You</em>}</strong>
+                            <span><code>{u.username}</code></span>
+                          </div>
+                        </td>
+                        <td className="cell-role">
+                          <strong>{ROLE_LABEL[u.role] || u.role}</strong>
+                          {cov ? <span>{cov}</span> : <span className="warn">No purok assigned yet</span>}
+                        </td>
+                        <td>{u.is_active ? <span className="badge badge-positive badge-dot">Active</span> : <span className="badge badge-slate badge-dot">Deactivated</span>}</td>
+                        <td className="cell-seen">
+                          {seen ? <><strong>{seen.main}</strong><span>{seen.sub}</span></> : <span className="never">Never signed in</span>}
+                        </td>
+                        <td>
+                          <div className="row-actions">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(u)} iconLeft={<Pencil className="h-3.5 w-3.5" />} aria-label={`Edit ${u.full_name}`}>Edit</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} unit="accounts" onPageChange={setPage} />
+          </div>
         </div>
-        <Pagination page={page} pageSize={pageSize} total={total} unit="accounts" onPageChange={(p) => setPage(p)} />
+
+        <aside className="staff-rail">
+          <section className="home-panel" id="purok-coverage">
+            <header><h2>Purok coverage</h2></header>
+            <ul className="cover-list">
+              {purokCover.map((z) => (
+                <li key={z.id} className={z.workers.length ? '' : 'is-gap'}>
+                  <div>
+                    <strong>{z.name}</strong>
+                    {z.workers.length
+                      ? <span>{z.workers.map((w) => w.full_name).join(', ')}</span>
+                      : <span className="warn">No health worker</span>}
+                  </div>
+                  {!z.workers.length && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => openCreate(z.id)}>Add</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <p className="home-note">Only active health workers count. Deactivated accounts keep their record but cannot sign in.</p>
+          </section>
+        </aside>
       </div>
 
+      {/* ---------------------------------------------------------- create */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="Create staff account"
-        subtitle="The password is stored as a bcrypt hash, never as plain text."
+        subtitle="They sign in with the username and password you set here."
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="user-create-form" disabled={actionLoading}>{actionLoading ? 'Creating…' : 'Create account'}</Button>
+            <Button variant="primary" type="submit" form="user-create-form" loading={actionLoading}>{actionLoading ? 'Creating…' : 'Create account'}</Button>
           </>
         }
       >
-        <form id="user-create-form" onSubmit={handleCreateSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <FormGroup label="Full name" required><Input type="text" placeholder="e.g. Ana Reyes" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} required /></FormGroup>
-            <div className="form-grid form-grid-2">
-              <FormGroup label="Username" required hint="3–50 lowercase letters, numbers, dot, underscore or hyphen"><Input type="text" className="code" placeholder="e.g. bhw3" pattern="^[a-z0-9._-]{3,50}$" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} required /></FormGroup>
-              <FormGroup label="Password" required hint="At least 8 characters"><Input type="password" minLength={8} value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required autoComplete="new-password" /></FormGroup>
-            </div>
-            <FormGroup label="Role" required>
-              <RolePicker value={newUser.role} onChange={(role) => setNewUser({ ...newUser, role })} />
-            </FormGroup>
+        <form id="user-create-form" className="sheet-body" onSubmit={handleCreateSubmit} noValidate>
+          <section className="sheet-section">
+            <h3>1. Role</h3>
+            <RolePicker value={newUser.role} onChange={(role) => setNewUser((p) => ({ ...p, role }))} />
             {newUser.role === 'BHW' && (
-              <FormGroup label="Assigned puroks" hint="A health worker sees only residents in these puroks.">
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {ZONES.map((z) => {
-                    const checked = (newUser.zone_ids || []).includes(z.id);
-                    return (<div key={z.id} className={`condition-chip ${checked ? 'active' : ''}`} onClick={() => handleZoneToggle(z.id, true)}><span className="chip-mark">{checked ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</span><span>{z.name}</span></div>);
-                  })}
-                </div>
-              </FormGroup>
+              <div className="form-sub">
+                <p className="form-label">Assigned puroks</p>
+                <PurokPicker value={newUser.zone_ids} onToggle={toggleZone(setNewUser)} error={createTried && createErrors.zones} />
+                <p className="form-hint">The health worker sees and edits only residents in these puroks.</p>
+              </div>
             )}
-          </div>
+          </section>
+
+          <section className="sheet-section">
+            <h3>2. Person</h3>
+            <div className="form-stack">
+              <FormGroup label="Full name" required error={createTried && createErrors.full_name}>
+                <Input value={newUser.full_name} placeholder="e.g. Ana Reyes"
+                  onChange={(e) => { const v = e.target.value; setNewUser((p) => ({ ...p, full_name: v, username: p.usernameTouched ? p.username : suggestUsername(v) })); }} />
+              </FormGroup>
+              <FormGroup label="Username" required hint="Suggested from the name. Lowercase letters, numbers, dot, underscore or hyphen." error={(createTried || newUser.usernameTouched) && (createErrors.username || createErrors.taken)}>
+                <Input className="code" value={newUser.username} placeholder="e.g. ana.reyes"
+                  onChange={(e) => setNewUser((p) => ({ ...p, username: e.target.value.toLowerCase().trim(), usernameTouched: true }))} />
+              </FormGroup>
+            </div>
+          </section>
+
+          <section className="sheet-section">
+            <h3>3. Password</h3>
+            <FormGroup label="Starting password" required hint="At least 8 characters. Give it to the person in private; they can't see it later." error={createTried && createErrors.password}>
+              <PasswordField value={newUser.password} onChange={(v) => setNewUser((p) => ({ ...p, password: v }))} />
+            </FormGroup>
+          </section>
         </form>
       </Modal>
 
+      {/* ------------------------------------------------------------ edit */}
       <Modal
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
         title={editingUser ? editingUser.full_name : 'Edit account'}
-        subtitle={editingUser ? `Username ${editingUser.username}` : ''}
+        subtitle={editingUser ? `${editingUser.username} · ${ROLE_LABEL[editingUser.role]}` : ''}
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="user-edit-form" disabled={actionLoading}>{actionLoading ? 'Saving…' : 'Save changes'}</Button>
+            <Button variant="primary" type="submit" form="user-edit-form" loading={actionLoading}>{actionLoading ? 'Saving…' : 'Save changes'}</Button>
           </>
         }
       >
         {editingUser && (
-          <form id="user-edit-form" onSubmit={handleEditSubmit}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <FormGroup label="Full name" required><Input type="text" value={editingUser.full_name} onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })} required /></FormGroup>
-              <FormGroup label="Reset password" hint="Leave blank to keep the current password."><Input type="password" placeholder="At least 8 characters" autoComplete="new-password" minLength={8} value={editingUser.password || ''} onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })} /></FormGroup>
-              <FormGroup label="Role" required>
-                <RolePicker value={editingUser.role} onChange={(role) => setEditingUser({ ...editingUser, role })} />
+          <form id="user-edit-form" className="sheet-body" onSubmit={handleEditSubmit} noValidate>
+            <section className="sheet-section">
+              <h3>Details</h3>
+              <FormGroup label="Full name" required error={editErrors.full_name}>
+                <Input value={editingUser.full_name} onChange={(e) => setEditingUser((p) => ({ ...p, full_name: e.target.value }))} />
               </FormGroup>
+            </section>
+
+            <section className="sheet-section">
+              <h3>Role and puroks</h3>
+              <RolePicker value={editingUser.role} disabled={isSelf} onChange={(role) => setEditingUser((p) => ({ ...p, role }))} />
+              {isSelf && <p className="form-hint">You can't change the role of the account you are signed in with.</p>}
               {editingUser.role === 'BHW' && (
-                <FormGroup label="Assigned puroks" hint="A health worker sees only residents in these puroks.">
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {ZONES.map((z) => {
-                      const checked = (editingUser.zone_ids || []).includes(z.id);
-                      return (<div key={z.id} className={`condition-chip ${checked ? 'active' : ''}`} onClick={() => handleZoneToggle(z.id, false)}><span className="chip-mark">{checked ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</span><span>{z.name}</span></div>);
-                    })}
-                  </div>
-                </FormGroup>
+                <div className="form-sub">
+                  <p className="form-label">Assigned puroks</p>
+                  <PurokPicker value={editingUser.zone_ids} onToggle={toggleZone(setEditingUser)} error={editErrors.zones} />
+                </div>
               )}
-              <label className={`toggle-card ${editingUser.is_active ? 'on' : ''}`}>
-                <input type="checkbox" checked={editingUser.is_active} onChange={(e) => setEditingUser({ ...editingUser, is_active: e.target.checked })} />
-                <span>
-                  <strong>{editingUser.is_active ? 'Account is active' : 'Account is deactivated'}</strong>
-                  <span>{editingUser.is_active ? 'Untick to stop this person from signing in.' : 'They are signed out everywhere and cannot sign in. The account record is kept for the audit trail.'}</span>
-                </span>
-              </label>
-            </div>
+            </section>
+
+            <section className="sheet-section">
+              <h3>Password</h3>
+              {showPwReset ? (
+                <FormGroup label="New password" hint="At least 8 characters. They will use it on their next sign-in." error={editErrors.password}>
+                  <PasswordField value={editingUser.password} onChange={(v) => setEditingUser((p) => ({ ...p, password: v }))} autoFocus />
+                </FormGroup>
+              ) : (
+                <div className="pw-reset-row">
+                  <span>The current password stays unless you set a new one.</span>
+                  <Button variant="secondary" size="sm" type="button" iconLeft={<KeyRound className="h-3.5 w-3.5" />} onClick={() => setShowPwReset(true)}>Set a new password</Button>
+                </div>
+              )}
+            </section>
+
+            <section className="sheet-section">
+              <h3>Account status</h3>
+              {isSelf ? (
+                <p className="form-hint">This is your account. It stays active while you are signed in with it.</p>
+              ) : (
+                <div className={`status-row ${editingUser.is_active ? '' : 'is-off'}`}>
+                  <div>
+                    <strong>{editingUser.is_active ? 'Active: can sign in' : 'Deactivated: cannot sign in'}</strong>
+                    <span>{editingUser.is_active
+                      ? 'Deactivating signs them out everywhere. Their record and history are kept.'
+                      : 'Reactivating lets them sign in again with their password.'}</span>
+                  </div>
+                  <Button variant={editingUser.is_active ? 'danger-outline' : 'secondary'} size="sm" type="button"
+                    onClick={() => setEditingUser((p) => ({ ...p, is_active: !p.is_active }))}>
+                    {editingUser.is_active ? 'Deactivate' : 'Reactivate'}
+                  </Button>
+                </div>
+              )}
+            </section>
           </form>
         )}
       </Modal>

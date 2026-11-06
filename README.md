@@ -73,6 +73,10 @@ The database comes pre-seeded with synthetic test accounts demonstrating the rol
 
 **Default Password (All Accounts)**: `Demo#12345`
 
+Any signed-in user can change their own password from the account menu (top right) > **Change password**
+(`POST /api/auth/password`). The current password is required, and the user's other sessions are signed out.
+Username, role, purok assignments and active status can only be changed by `admin1`.
+
 ---
 
 ## 3. Quick Start (Docker Compose)
@@ -144,15 +148,15 @@ npm run dev        # Runs Vite on http://localhost:5173
 The repository includes extensive automated test suites ensuring full compliance with `docs/openapi.yaml` and the course security rules.
 
 ### 5.1 API Test Suite (Node.js Native Test Runner)
-Covers all 11 endpoints, role-based zoning, error mapping, and transaction integrity:
+Covers all 12 endpoints, role-based zoning, error mapping, and transaction integrity:
 
 ```bash
 npm --prefix api test
 ```
-*Current status: **71/71 tests passing** across 8 test suites.*
+*Current status: **All 78 tests passing** across 9 test files, including `test/password.test.js` for the change-password endpoint.*
 
 ### 5.2 Bruno API Collection (`tests/bruno/`)
-A complete Bruno collection covering all 11 endpoints with success (200/201) and error cases (400, 401, 403, 404):
+A complete Bruno collection covering all 12 endpoints with success (200/201) and error cases (400, 401, 403, 404):
 
 ```bash
 # Run via Bruno CLI against the local environment:

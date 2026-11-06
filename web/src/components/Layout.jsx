@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Home, Users, FileText, Shield, LogOut, MapPin, ChevronDown } from 'lucide-react';
+import { Home, Users, FileText, Shield, LogOut, MapPin, ChevronDown, UserPlus, KeyRound } from 'lucide-react';
+import { ChangePasswordDialog } from './ChangePasswordDialog.jsx';
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -21,11 +22,13 @@ export function HealthMark({ size = 18 }) {
 
 const navItems = (role) => {
   if (role === 'BHW') return [
-    { to: '/households/new', label: 'Encode household', short: 'Encode', icon: Home },
+    { to: '/', label: 'Home', icon: Home, end: true },
+    { to: '/households/new', label: 'Encode household', short: 'Encode', icon: UserPlus },
     { to: '/residents', label: 'Residents', icon: Users },
     { to: '/masterlists', label: 'Masterlists', icon: FileText },
   ];
   if (role === 'MIDWIFE') return [
+    { to: '/', label: 'Home', icon: Home, end: true },
     { to: '/residents', label: 'Residents', icon: Users },
     { to: '/masterlists', label: 'Masterlists', icon: FileText },
   ];
@@ -49,6 +52,7 @@ export function Layout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const menuRef = useRef(null);
   const handleLogout = async () => { setMenuOpen(false); await logout(); navigate('/login'); };
 
@@ -78,8 +82,8 @@ export function Layout() {
 
           {/* Desktop: tabs in the top bar. Phones: a bottom tab bar (same links). */}
           <nav className="topnav" aria-label="Main">
-            {items.map(({ to, label, short, icon: Icon }) => (
-              <NavLink key={to} to={to} aria-label={label} className={({ isActive }) => `topnav-item ${isActive ? 'active' : ''}`}>
+            {items.map(({ to, label, short, icon: Icon, end }) => (
+              <NavLink key={to} to={to} end={end} aria-label={label} className={({ isActive }) => `topnav-item ${isActive ? 'active' : ''}`}>
                 <Icon aria-hidden="true" />
                 <span className="nav-long">{label}</span>
                 <span className="nav-short">{short || label}</span>
@@ -105,6 +109,9 @@ export function Layout() {
                     <span>{roleLabel(user.role)}</span>
                     <span className="account-scope"><MapPin size={15} aria-hidden="true" />{scopeLabel(user)}</span>
                   </div>
+                  <button type="button" role="menuitem" className="account-item" onClick={() => { setMenuOpen(false); setPwOpen(true); }}>
+                    <KeyRound size={18} aria-hidden="true" />Change password
+                  </button>
                   <button type="button" role="menuitem" className="account-signout" onClick={handleLogout}>
                     <LogOut size={18} aria-hidden="true" />Sign out
                   </button>
@@ -114,6 +121,8 @@ export function Layout() {
           </div>
         </div>
       </header>
+
+      <ChangePasswordDialog isOpen={pwOpen} onClose={() => setPwOpen(false)} />
 
       <main className="main">
         <div className="page"><Outlet /></div>

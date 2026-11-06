@@ -297,13 +297,24 @@ export function HouseholdFormPage() {
   const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  /* After a save, show a confirmation with the next step instead of the form. */
+  const [saved, setSaved] = useState(null);
   const [collapsed, setCollapsed] = useState({});
   const [removeIdx, setRemoveIdx] = useState(null);
 
   /* Autosave on every change while not submitting / after success. */
   useEffect(() => {
-    if (submitting || success) return;
+    if (submitting || success || saved) return;
     try {
+      /* Keep a draft only once something has been typed in. */
+      const touched =
+        Boolean(household.address_line || household.reviewed_by_name) ||
+        members.length > 1 ||
+        members.some((m) => m.last_name || m.first_name || m.birth_date);
+      if (!touched) {
+        sessionStorage.removeItem(DRAFT_KEY);
+        return;
+      }
       sessionStorage.setItem(
         DRAFT_KEY,
         JSON.stringify({ household, members, savedAt: Date.now() }),
@@ -311,7 +322,7 @@ export function HouseholdFormPage() {
     } catch {
       /* storage unavailable — form still works */
     }
-  }, [household, members, submitting, success]);
+  }, [household, members, submitting, success, saved]);
 
   /* Live validation state (mirrors what the server would reject). */
   const checks = useMemo(
@@ -590,14 +601,20 @@ export function HouseholdFormPage() {
         /* ignore */
       }
       setDraftRestored(false);
-      setSuccess(
-        `Household ${res.household_no} profiled with ${res.members?.length || 0} residents!`,
-      );
+      setSaved({
+        household_no: res.household_no || household.household_no,
+        zone_id: household.zone_id,
+        members: res.members || cleanedMembers,
+      });
+      setHousehold(defaultHousehold(assignedZoneIds));
+      setMembers([initialMember()]);
+      setCollapsed({});
+      setAttempted(false);
+      window.scrollTo(0, 0);
       showToast({
         type: "success",
-        message: `Household ${res.household_no} saved successfully.`,
+        message: `Household ${res.household_no} saved.`,
       });
-      setTimeout(() => navigate("/residents"), 1200);
     } catch (err) {
       setError(err.message || "Failed to save household profile.");
       showToast({
@@ -659,6 +676,37 @@ export function HouseholdFormPage() {
   const zoneName = ZONES.find((z) => String(z.id) === String(household.zone_id))?.name || "No purok";
   const hhIssues = failing.filter((c) => c.section === "hh");
   const rosterIssues = failing.filter((c) => c.section === "roster");
+
+  if (saved) {
+    const savedZone = ZONES.find((z) => String(z.id) === String(saved.zone_id))?.name || "";
+    const relLabel = (code) => RELATIONS_TO_HEAD.find((r) => r.code === code)?.label || code;
+    return (
+      <div className="page-stack">
+        <section className="saved-card" aria-live="polite">
+          <span className="saved-check" aria-hidden="true"><Check size={26} strokeWidth={3} /></span>
+          <p className="saved-kicker">Household saved</p>
+          <h1 className="saved-title code">{saved.household_no}</h1>
+          <p className="saved-sub">
+            {saved.members.length} {saved.members.length === 1 ? "member" : "members"} added to {savedZone}.
+            Anyone who is a senior citizen, under five, pregnant or a person with disability is now on that masterlist.
+          </p>
+          <ul className="saved-members">
+            {saved.members.map((m, i) => (
+              <li key={m.id || i}>
+                <strong>{m.last_name}, {m.first_name}</strong>
+                <span>{relLabel(m.relation_to_head)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="saved-actions">
+            <Button variant="primary" size="lg" onClick={() => setSaved(null)}>Encode next household</Button>
+            <Button variant="secondary" size="lg" onClick={() => navigate(`/residents?zone=${saved.zone_id}`)}>See {savedZone} residents</Button>
+          </div>
+          <button type="button" className="link-btn saved-home" onClick={() => navigate("/")}>Back to home</button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="page-stack">
@@ -1056,7 +1104,7 @@ export function HouseholdFormPage() {
               <Button variant="primary" type="submit" size="lg" className="btn-block" loading={submitting} disabled={submitting}>
                 {submitting ? "Saving household…" : "Save household"}
               </Button>
-              <Button variant="ghost" className="btn-block" onClick={() => navigate("/residents")}>
+              <Button variant="ghost" className="btn-block" onClick={() => navigate("/")}>
                 Cancel
               </Button>
               <p className="rail-note">

@@ -49,9 +49,14 @@ tests/bruno/
     ├── 04-create-user-validation-failed.bru # POST /api/users (400)
     ├── 05-update-user-success.bru  # PATCH /api/users/{id} (200)
     └── 06-update-user-not-found.bru # PATCH /api/users/{id} (404)
+└── 06-account/
+    ├── 01-change-password-unauthenticated.bru # POST /api/auth/password (401)
+    ├── 02-change-password-wrong-current.bru   # POST /api/auth/password (400)
+    ├── 03-change-password-success.bru         # POST /api/auth/password (200)
+    └── 04-change-password-restore.bru         # POST /api/auth/password (200, back to Demo#12345)
 ```
 
-## 2. All 11 Endpoints Coverage Matrix
+## 2. All 12 Endpoints Coverage Matrix
 
 | # | Endpoint | Method | Success Case | Failure Case(s) |
 |---|---|---|---|---|
@@ -66,6 +71,7 @@ tests/bruno/
 | 9 | `/api/users` | GET | `01-list-users-success` (200) | `02-list-users-forbidden-bhw` (403) |
 | 10 | `/api/users` | POST | `03-create-user-success` (201) | `04-create-user-validation-failed` (400) |
 | 11 | `/api/users/{id}` | PATCH | `05-update-user-success` (200) | `06-update-user-not-found` (404) |
+| 12 | `/api/auth/password` | POST | `03-change-password-success` (200) | `01-change-password-unauthenticated` (401), `02-change-password-wrong-current` (400) |
 
 ## 3. How to Run in Bruno Desktop
 
@@ -76,5 +82,6 @@ tests/bruno/
    - `01-login-bhw1-success` saves `bhw1Token` and `token`.
    - `02-login-admin-success` saves `adminToken`.
    - `03-login-midwife-success` saves `midwifeToken`.
-5. Run collection or individual folders (`02-households`, `03-residents`, `04-masterlists`, `05-users`).
+5. Run collection or individual folders (`02-households`, `03-residents`, `04-masterlists`, `05-users`, `06-account`).
+   `06-account` changes `midwife1`'s password and then restores `Demo#12345`, so run all four of its requests in order.
 

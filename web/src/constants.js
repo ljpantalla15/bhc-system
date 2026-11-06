@@ -160,15 +160,6 @@ export function ageGroupChip(group) {
   return 'chip-plain';
 }
 
-/** The flat colour behind a chip, for surfaces that need a solid field. */
-export const CHIP_HEX = {
-  'chip-senior': '#f2b705',
-  'chip-child': '#0b7a3d',
-  'chip-maternal': '#c22560',
-  'chip-pwd': '#5b3fa8',
-  'chip-plain': '#aebecc',
-};
-
 /** Target group from a birth date, mirroring the API's age_risk_group codes. */
 export function ageRiskGroup(dob, ref) {
   if (!dob) return null;

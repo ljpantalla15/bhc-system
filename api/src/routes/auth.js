@@ -3,10 +3,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { config } from '../config.js';
-import { query } from '../db.js';
+import { query, withTransaction } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { loginRequestSchema } from '../schemas/auth.js';
+import { loginRequestSchema, changePasswordSchema } from '../schemas/auth.js';
 
 export const authRouter = Router();
 
@@ -131,6 +131,66 @@ authRouter.post('/logout', requireAuth, async (req, res, next) => {
 
     return res.status(200).json({
       message: 'Session ended.',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Wrong current passwords count like failed logins, so this cannot be used to guess.
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      error: {
+        code: 'rate_limited',
+        message: 'Too many password change attempts. Please try again later.',
+      },
+    });
+  },
+  skip: () => process.env.NODE_ENV === 'test',
+});
+
+/**
+ * POST /api/auth/password
+ * Any signed-in user changes their own password. The current password must be
+ * correct. Other sessions of this user are revoked; the current one stays.
+ * A wrong current password is a 400 (not 401) so the caller is not signed out.
+ */
+authRouter.post('/password', requireAuth, passwordLimiter, async (req, res, next) => {
+  try {
+    const { current_password, new_password } = changePasswordSchema.parse(req.body);
+
+    const userRes = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (userRes.rows.length === 0) {
+      throw new AppError(401, 'unauthenticated', 'Session not found.');
+    }
+
+    const matches = await bcrypt.compare(current_password, userRes.rows[0].password_hash);
+    if (!matches) {
+      throw new AppError(400, 'validation_failed', 'Validation failed.', [
+        { field: 'current_password', issue: 'Current password is incorrect' },
+      ]);
+    }
+
+    const passwordHash = await bcrypt.hash(new_password, 10);
+
+    const revoked = await withTransaction(req.user, async (client) => {
+      await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [passwordHash, req.user.id]);
+      const r = await client.query(
+        `UPDATE auth_sessions SET revoked_at = now()
+          WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL`,
+        [req.user.id, req.sessionId]
+      );
+      return r.rowCount;
+    });
+
+    return res.status(200).json({
+      message: 'Password changed.',
+      other_sessions_revoked: revoked,
     });
   } catch (err) {
     next(err);

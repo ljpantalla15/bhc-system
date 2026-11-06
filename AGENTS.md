@@ -13,7 +13,7 @@ A three-tier web system that replaces paper forms and spreadsheets for resident 
 ## Source of truth: read before coding
 - `database/01_schema.sql`, `02_api_role.sql`, `03_demo_seed.sql`: the schema. **Never invent tables or columns.**
   If something is missing, add `database/migrations/NNN_description.sql`, say so, and update the docs.
-- `docs/openapi.yaml`: the API contract (11 endpoints). If behavior changes, update this file in the same change.
+- `docs/openapi.yaml`: the API contract (12 endpoints). If behavior changes, update this file in the same change.
 - `docs/CONVENTIONS.md`: API, database, and security conventions. Follow them.
 - `docs/BUILD_PLAN.md`: the step-by-step plan. Work on one step at a time.
 
@@ -21,6 +21,8 @@ A three-tier web system that replaces paper forms and spreadsheets for resident 
 - **BHW**: create/read/update/deactivate residents in their assigned zones only.
 - **MIDWIFE**: read-only, all zones. No edits.
 - **ADMIN**: manage user accounts only. **No access to resident health data.**
+- **Every role** can change **their own password** (`POST /api/auth/password`, current password required).
+  Username, role, zones and active status are changed by the ADMIN only.
 
 ## Hard rules
 1. Never DELETE residents, households, or users. Deactivate with `is_active = false`.

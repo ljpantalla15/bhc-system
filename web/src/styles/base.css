@@ -1,8 +1,13 @@
 /* ==========================================================================
    Barangay Tago Health Center: "Folder tabs"
-   Ink-navy and white everywhere. The only strong colour comes from the four
-   programme folder tabs (senior, under-five, maternal, PWD), the way health
-   centers colour-code family folders.
+   Navy is the brand: top bar, primary buttons, links, headings.
+   Supporting colours are muted and earthy, taken from the barangay scene
+   (sun ochre, palm green, clay rose, dusk violet), and each has one job:
+   - status: green = done/active, amber = needs attention, blue = info,
+     red = error or deactivation only
+   - programmes: one colour per masterlist, the way health centers
+     colour-code family folders
+   Every text colour is 6.5:1 or better on its tint; stripes are 3:1+.
    ========================================================================== */
 
 :root {
@@ -24,7 +29,7 @@
   --muted: #46535f;
   --faint: #56636e;
 
-  /* One hue. Programmes are told apart by shade and label, not by colour. */
+  /* Navy scale: the brand */
   --navy-900: #172f45;
   --navy-700: #1e3d59;
   --navy-500: #4a6580;
@@ -33,34 +38,38 @@
   --navy-100: #e6edf3;
   --navy-50: #f2f5f8;
 
-  --senior: var(--navy-700);
-  --senior-ink: var(--navy-700);
-  --senior-tint: var(--navy-100);
-  --child: var(--navy-700);
-  --child-ink: var(--navy-700);
-  --child-tint: var(--navy-100);
-  --maternal: var(--navy-700);
-  --maternal-ink: var(--navy-700);
-  --maternal-tint: var(--navy-100);
-  --pwd: var(--navy-700);
-  --pwd-ink: var(--navy-700);
-  --pwd-tint: var(--navy-100);
+  /* Programmes: stripe colour, text colour, background tint */
+  --senior: #b98320;        /* sun ochre */
+  --senior-ink: #74500a;
+  --senior-tint: #fbf2de;
+  --child: #4e8a5c;         /* palm green */
+  --child-ink: #2a5835;
+  --child-tint: #e7f2e9;
+  --maternal: #c0587b;      /* clay rose */
+  --maternal-ink: #86284a;
+  --maternal-tint: #fae9ef;
+  --pwd: #6e62ab;           /* dusk violet */
+  --pwd-ink: #463b80;
+  --pwd-tint: #efecf8;
   --plain: var(--navy-200);
 
-  /* Status: navy shades, except red, kept only for errors and deletion */
-  --negative: #b42318;
+  /* Status */
+  --negative: #b42318;      /* errors, deactivation */
   --negative-ink: #7a1710;
   --negative-tint: #fdecea;
   --negative-line: #f4c7c2;
-  --positive: var(--navy-700);
-  --positive-tint: var(--navy-100);
-  --positive-line: var(--navy-200);
-  --notice-ink: var(--navy-700);
-  --notice-tint: var(--navy-50);
-  --notice-line: var(--navy-200);
-  --info-ink: var(--navy-700);
-  --info-tint: var(--navy-50);
-  --info-line: var(--navy-200);
+  --positive: #1d5c37;      /* saved, active */
+  --positive-mark: #2e7d4f;
+  --positive-tint: #e8f4ec;
+  --positive-line: #b8dcc5;
+  --notice: #b07a16;        /* needs attention */
+  --notice-ink: #7a4f00;
+  --notice-tint: #fdf4de;
+  --notice-line: #efd49b;
+  --info: #2b6fa3;          /* neutral guidance */
+  --info-ink: #1c5480;
+  --info-tint: #e7f1f9;
+  --info-line: #bcd6ea;
 
   /* Legacy aliases still read by a few inline styles */
   --accent: var(--ink);
@@ -71,9 +80,8 @@
   --danger-border: var(--negative-line);
   --success: var(--positive);
   --success-dark: var(--positive);
-  --warning: var(--notice-ink);
+  --warning: var(--notice);
   --warning-dark: var(--notice-ink);
-  --info: var(--info-ink);
   --info-dark: var(--info-ink);
   --text-muted: var(--muted);
   --pill-negative-ink: var(--negative-ink);
@@ -83,7 +91,7 @@
   --slate-600: #46535f;
   --slate-700: #2f3c48;
 
-  --font-ui: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: var(--font-ui);
   --font-code: var(--font-ui);
 
@@ -123,13 +131,12 @@ body {
   color: var(--text);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  font-variant-numeric: tabular-nums;
 }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 input, select, textarea { font: inherit; color: inherit; }
 img { max-width: 100%; display: block; }
-code, .code { font-family: var(--font-ui); font-size: 1em; font-weight: 600; letter-spacing: 0.01em; }
+code, .code { font-family: var(--font-ui); font-size: 1em; font-weight: 600; letter-spacing: 0; }
 ::selection { background: var(--ink-soft); color: var(--ink-strong); }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 

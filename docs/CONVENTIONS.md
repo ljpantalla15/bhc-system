@@ -36,6 +36,11 @@ async function withTransaction(user, fn) {
   sign a JWT whose `jti` is the session id, `sub` the user id, with the same expiry.
 - Every protected request: verify the JWT, then check the session row exists, is not revoked, and is not expired.
 - `POST /api/auth/logout`: set `revoked_at = now()` on the session.
+- `POST /api/auth/password`: any signed-in user changes their own password. Check `current_password` with
+  bcrypt, hash `new_password` (min 8, must differ), update `users` inside `withTransaction`, then revoke the
+  user's other sessions (`id <> current session`). Rate-limit it like login.
+  A wrong current password is **400 `validation_failed`** (field `current_password`), not 401, because
+  the client signs the user out on any 401.
 - Same 401 message for wrong username and wrong password. Rate-limit login (express-rate-limit).
 
 ## Authorization
@@ -57,6 +62,7 @@ async function withTransaction(user, fn) {
 | PostgreSQL 23505 on `users_username_uq` | 400 | validation_failed (username taken) |
 | PostgreSQL 23514, 23503, 22023 | 400 | validation_failed |
 | Wrong credentials | 401 | invalid_credentials |
+| Wrong current password on `POST /api/auth/password` | 400 | validation_failed (field `current_password`) |
 | Missing, expired, or revoked token | 401 | unauthenticated |
 | Wrong role, or zone not assigned | 403 | forbidden |
 | Not found or outside the BHW's zones | 404 | not_found |
@@ -82,6 +88,7 @@ Map by constraint name (`err.constraint`), never by message text, and never forw
 - **HTTPS Only**: Nginx TLS reverse proxy; only port 443 is published externally.
 - **Helmet**: Secures HTTP response headers with standard security practices.
 - **Authentication**: Login rate limit (10 attempts / 15 min per IP), bcrypt password hashing (cost factor 10), stateful server sessions (`auth_sessions`) paired with signed JWTs.
+- **Self-service password change**: requires the current password, has the same rate limit as login, revokes the user's other sessions, and is written to `change_log` without the hash (the `log_change()` trigger strips `password_hash`).
 - **Principle of Least Privilege**:
   - API connects to PostgreSQL as `bhc_api`, not the database owner.
   - Administrator role (`ADMIN`) is strictly prohibited from accessing resident health records, households, or masterlists (returns 403 Forbidden).

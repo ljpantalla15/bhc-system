@@ -89,7 +89,7 @@ Links BHW accounts to the zones they cover. A trigger rejects any user who is no
 
 ### 3.4 auth\_sessions
 
-Server-side sessions, so that logout (POST /api/auth/logout) really ends a session.
+Server-side sessions, so that logout (POST /api/auth/logout) really ends a session. Changing your own password (POST /api/auth/password) revokes your other sessions; deactivating a user revokes all of theirs.
 
 | Column | Type | Null | Key | Description |
 | --- | --- | --- | --- | --- |
@@ -97,7 +97,7 @@ Server-side sessions, so that logout (POST /api/auth/logout) really ends a sessi
 | user\_id | bigint | N | FK users | Session owner |
 | issued\_at | timestamptz | N |  | When the token was issued |
 | expires\_at | timestamptz | N |  | Must be later than issued\_at |
-| revoked\_at | timestamptz | Y |  | Set on logout. Empty = still valid |
+| revoked\_at | timestamptz | Y |  | Set on logout, on deactivation, or on a password change (other sessions). Empty = still valid |
 
 ### 3.5 households
 

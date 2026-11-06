@@ -293,7 +293,7 @@ test('DELETE /api/residents/:id deactivates resident and writes DEACTIVATE to ch
 
   // Verify GET /api/residents with include_inactive=true includes temp resident
   const allRes = await request(app)
-    .get('/api/residents?household_id=1&include_inactive=true')
+    .get('/api/residents?household_id=1&include_inactive=true&page_size=100')
     .set('Authorization', `Bearer ${bhw1Token}`);
 
   assert.equal(allRes.body.items.some((r) => r.id === tempResidentId), true);

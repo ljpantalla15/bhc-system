@@ -75,7 +75,7 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["Atkinson Hyperlegible Next", "system-ui", "sans-serif"],
+        sans: ["Google Sans", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },

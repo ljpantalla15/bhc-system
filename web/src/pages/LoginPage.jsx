@@ -6,13 +6,15 @@ import { showToast } from '../components/Toast.jsx';
 import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Form.jsx';
 import { HealthMark } from '../components/Layout.jsx';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { LoginIllustration } from '../components/LoginIllustration.jsx';
 
+// Synthetic demo accounts from database/03_demo_seed.sql. All share one password.
+const DEMO_PASSWORD = 'Demo#12345';
 const DEMO_ACCOUNTS = [
-  { key: 'bhw1', user: 'bhw1', pass: 'Demo#12345', label: 'Health worker 1', scope: 'Purok 1' },
-  { key: 'bhw2', user: 'bhw2', pass: 'Demo#12345', label: 'Health worker 2', scope: 'Purok 2 and 3' },
-  { key: 'midwife1', user: 'midwife1', pass: 'Demo#12345', label: 'Midwife', scope: 'All puroks, read only' },
-  { key: 'admin1', user: 'admin1', pass: 'Demo#12345', label: 'Administrator', scope: 'Staff accounts' },
+  { user: 'bhw1', role: 'Health worker', scope: 'Purok 1' },
+  { user: 'bhw2', role: 'Health worker', scope: 'Purok 2 and 3' },
+  { user: 'midwife1', role: 'Midwife', scope: 'All puroks, read only' },
+  { user: 'admin1', role: 'Administrator', scope: 'Staff accounts only' },
 ];
 
 export function LoginPage() {
@@ -23,7 +25,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [activeKey, setActiveKey] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,84 +32,76 @@ export function LoginPage() {
     try {
       const user = await login(username, password);
       showToast({ type: 'success', message: `Signed in as ${user.full_name}.` });
-      if (user.role === 'ADMIN') navigate('/users');
-      else if (user.role === 'BHW') navigate('/households/new');
-      else navigate('/residents');
+      navigate(user.role === 'ADMIN' ? '/users' : '/');
     } catch (err) {
       const msg = err instanceof TypeError ? 'Cannot reach the server. Check your connection and try again.' : err.message || 'Sign-in failed. Check your username and password.';
       setError(msg);
     }
   };
 
-  const quickFill = (acc) => { setUsername(acc.user); setPassword(acc.pass); setActiveKey(acc.key); setError(''); };
+  const fill = (user) => { setUsername(user); setPassword(DEMO_PASSWORD); setError(''); };
 
   return (
-    <div className="login-shell">
-      <div className="login-hero">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
-          <span className="brand-mark"><HealthMark size={20} /></span>
-          <span className="brand-text"><strong>Barangay Tago Health Center</strong><span>Naga City</span></span>
-        </div>
-
-        <div>
-          <p className="login-headline">Every household, one folder.</p>
-          <p className="login-lede">Encode family profiles, find residents by purok, and print the target lists for each health program.</p>
-        </div>
-
-        <div className="folder-band" aria-hidden="true">
-          <div>Senior citizens</div>
-          <div>Under-five</div>
-          <div>Pregnant women</div>
-          <div>Persons with disability</div>
-        </div>
-      </div>
-
-      <div className="login-panel">
-        <div className="login-card">
+    <div className="login-page">
+      <aside className="login-art">
+        <header className="login-masthead">
+          <span className="login-seal"><HealthMark size={18} /></span>
           <div>
-            <h1>Sign in</h1>
-            <p className="sub">Use your health center staff account.</p>
+            <strong>Barangay Tago Health Center</strong>
+            <span>Naga City</span>
           </div>
+        </header>
+        <figure>
+          <LoginIllustration />
+          <figcaption>House to house, purok by purok. Each visit updates the family profile and the program masterlists.</figcaption>
+        </figure>
+      </aside>
+
+      <main className="login-main">
+        <div className="login-form">
+          <p className="login-system">Resident Profiling and Masterlist System</p>
+          <h1>Marhay na aldaw!</h1>
+          <p className="login-sub">Sign in with your health center staff account.</p>
 
           <Alert type="danger" message={error} onClose={() => setError('')} />
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleSubmit} className="login-fields">
             <div className="form-group">
               <label className="form-label" htmlFor="login-username">Username</label>
-              <div className="input-affix">
-                <span className="affix-icon"><User className="h-4 w-4" /></span>
-                <Input id="login-username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus autoComplete="username" />
-              </div>
+              <Input id="login-username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus autoComplete="username" />
             </div>
             <div className="form-group">
-              <label className="form-label" htmlFor="login-password">Password</label>
-              <div className="input-affix has-btn">
-                <span className="affix-icon"><Lock className="h-4 w-4" /></span>
-                <Input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
-                <button type="button" className="affix-btn" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <div className="login-label-row">
+                <label className="form-label" htmlFor="login-password">Password</label>
+                <button type="button" className="login-reveal" onClick={() => setShowPassword(!showPassword)} aria-controls="login-password">
+                  {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              <Input id="login-password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
             </div>
             <Button type="submit" variant="primary" size="lg" loading={loading} className="btn-block">
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
 
-          <div>
-            <p className="form-label">Demo accounts</p>
-            <div className="demo-list">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button key={acc.key} type="button" className="demo-row" onClick={() => quickFill(acc)} aria-pressed={activeKey === acc.key} aria-label={`Fill in ${acc.label}`}>
-                  <span><strong>{acc.label}</strong><code>{acc.user}</code></span>
-                  <span className="scope">{acc.scope}</span>
-                </button>
+          <section className="login-demo" aria-labelledby="demo-title">
+            <h2 id="demo-title">Demo accounts</h2>
+            <p>Tap one to fill the form. Password for all: <code>{DEMO_PASSWORD}</code></p>
+            <ul>
+              {DEMO_ACCOUNTS.map((a) => (
+                <li key={a.user}>
+                  <button type="button" onClick={() => fill(a.user)} aria-pressed={username === a.user} aria-label={`Fill in ${a.user}, ${a.role}, ${a.scope}`}>
+                    <code>{a.user}</code>
+                    <span><strong>{a.role}</strong>{a.scope}</span>
+                  </button>
+                </li>
               ))}
-            </div>
-            <p className="form-hint">Synthetic data only. Every change is recorded in the audit log.</p>
-          </div>
+            </ul>
+          </section>
+
+          <p className="login-foot">MIS 215 academic project. Fictional health center, synthetic data only. Every change is logged under your name.</p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

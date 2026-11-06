@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Barangay Health Center Resident Profiling and Masterlist API
-  version: 0.1.0
+  version: 0.2.0
   summary: Draft REST API for the MIS 215 project (fictional Barangay Tago Health Center).
   description: |
     JSON over HTTPS. Three roles: **BHW** (own zones only), **Midwife** (read access to all
@@ -10,6 +10,8 @@ info:
 
     **Conventions**
     - Authenticate with `POST /api/auth/login`, then send `Authorization: Bearer <token>`.
+    - Any signed-in user can change their own password with `POST /api/auth/password`.
+      Username, role, zones and active status stay with the Administrator.
     - Success codes: 200 and 201. Errors: 400, 401, 403, 404, 500, always in the `Error` shape.
     - `DELETE` never removes data. It deactivates (`is_active = false`).
     - Age and age risk group are calculated from `birth_date` and are read-only.
@@ -69,6 +71,37 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/auth/password:
+    post:
+      tags: [Auth]
+      operationId: changeOwnPassword
+      summary: Change your own password
+      description: |
+        **Access:** BHW, Midwife, Administrator (their own account only).
+        The current password must be correct. The new password is stored as a bcrypt hash and
+        the change is stamped with the user's id (`app.current_user_id`). The user's **other**
+        sessions are revoked; the session that made the change stays signed in.
+
+        A wrong current password returns **400** `validation_failed` with
+        `details[0].field = current_password`, not 401, so the caller is not signed out.
+        Attempts are rate-limited like login (10 per 15 minutes per IP).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+            example: { current_password: Demo#12345, new_password: N3w-Passw0rd }
+      responses:
+        '200':
+          description: Password changed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangePasswordResponse' }
+              example: { message: Password changed., other_sessions_revoked: 1 }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '500': { $ref: '#/components/responses/ServerError' }
 
@@ -467,6 +500,22 @@ components:
         token_type: { type: string, const: Bearer }
         expires_at: { type: string, format: date-time }
         user: { $ref: '#/components/schemas/User' }
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password]
+      description: Only these two fields are accepted. The new password must differ from the current one.
+      properties:
+        current_password: { type: string, minLength: 1, maxLength: 200, format: password }
+        new_password: { type: string, minLength: 8, maxLength: 200, format: password }
+    ChangePasswordResponse:
+      type: object
+      required: [message, other_sessions_revoked]
+      properties:
+        message: { type: string }
+        other_sessions_revoked:
+          type: integer
+          description: How many of the user's other sessions were signed out.
 
     # ---- users ----
     User:

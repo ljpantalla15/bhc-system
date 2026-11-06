@@ -7,3 +7,12 @@ backups/*
 !backups/.gitkeep
 *.log
 .DS_Store
+
+# AI assistant / IDE / agent scratch & skill directories
+.agents/
+.claude/
+.freebuff/
+.qodo/
+.taste-skill/
+.gemini/
+AGENTS

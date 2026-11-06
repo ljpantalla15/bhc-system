@@ -47,6 +47,10 @@ Prompt: *"Implement GET /api/masterlists using the masterlist() SQL function. BH
 ## Step 7: User administration
 Prompt: *"Implement GET /api/users, POST /api/users, PATCH /api/users/{id}. Hash passwords with bcryptjs, never return password_hash. zone_ids only for BHW accounts (the database trigger also enforces this). Deactivating a user must also revoke their open sessions."*
 
+## Step 7b: Change own password (added after Step 7)
+Prompt: *"Implement POST /api/auth/password exactly as in docs/openapi.yaml: any signed-in user changes their own password. Require current_password (bcrypt compare), new_password min 8 and different from the current one, no other fields. Update users inside withTransaction so the change is stamped and logged, then revoke the user's other auth_sessions. A wrong current password is 400 validation_failed on field current_password (not 401). Rate-limit like login. Tests: no token 401, wrong current 400 and session still valid, short 400, same as current 400, extra field 400, success 200 with other sessions revoked, old password rejected, change_log row without the hash."*
+Done when: `node --test test/password.test.js` passes and the web account menu has a working Change password dialog.
+
 ## Step 8: React client
 Prompt: *"In web/, build the React + Vite client: login page; role-based navigation; household encoding form that mirrors the paper Household Profiling Form (household header, then member rows with the code lists from docs/openapi.yaml); resident search and edit; masterlist page with category and zone filters and a print-friendly view; admin page for user accounts. Use the api() wrapper. Keep the UI simple and accessible."*
 
@@ -57,7 +61,7 @@ Run by hand: `sh scripts/gen-cert.sh`. Prompt: *"Make `docker compose --profile 
 Prompt: *"Add scripts/backup.sh (pg_dump from the db container into backups/ with a timestamp) and scripts/restore.sh. Test a full restore into a fresh database and record the result in docs/BACKUP_RECORD.md. Review the code against the security checklist in docs/CONVENTIONS.md and list any gaps."*
 
 ## Step 11: API tests
-Prompt: *"Create a Bruno collection in tests/bruno/ covering all 11 endpoints from docs/openapi.yaml, each with at least one success and one failure case, using environment variables for the base URL and token."*
+Prompt: *"Create a Bruno collection in tests/bruno/ covering all 12 endpoints from docs/openapi.yaml, each with at least one success and one failure case, using environment variables for the base URL and token."*
 
 ## Step 12: Load testing and architectural comparison
 Prompt: *"Write a load test in tests/load/ (k6, Locust, or JMeter) for login then GET /api/residents and GET /api/masterlists with increasing virtual users. Run it and summarize response times and error rates in docs/LOAD_TEST.md. Then write the architectural comparison section as the proposal describes."*

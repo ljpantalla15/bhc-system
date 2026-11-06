@@ -28,30 +28,38 @@ export function KpiStrip({ items, className = '', style }) {
 
 /**
  * Purok filter: resident counts per purok, and the purok picker in one.
- * Puroks outside a BHW's assignment are shown but cannot be picked.
+ * A health worker sees only their assigned puroks; the midwife sees all.
  */
 export function PurokStrip({ zones, counts, assignedZones = [], loading = false, selected = '', onSelect }) {
-  const inScope = (z) => assignedZones.length === 0 || assignedZones.includes(z.id);
-  const total = zones.filter(inScope).reduce((sum, z) => sum + (counts[z.id] || 0), 0);
+  const visible = assignedZones.length ? zones.filter((z) => assignedZones.includes(z.id)) : zones;
+  const total = visible.reduce((sum, z) => sum + (counts[z.id] || 0), 0);
   const show = (n) => (loading || n === undefined ? '–' : n);
+  /* One assigned purok: "All my puroks" would repeat it, so show just that purok. */
+  const single = assignedZones.length === 1;
 
   return (
     <div className="purok-filter" role="group" aria-label="Filter by purok">
-      <button type="button" className="purok-btn" aria-pressed={!selected} onClick={() => onSelect('')}>
-        <span className="p-name">{assignedZones.length ? 'All my puroks' : 'All puroks'}</span>
-        <span className="p-count">{loading ? '–' : total}</span>
-        <span className="p-note">residents</span>
-      </button>
-      {zones.map((z) => {
-        const ok = inScope(z);
-        return (
-          <button key={z.id} type="button" className="purok-btn" disabled={!ok} aria-pressed={String(selected) === String(z.id)} onClick={() => onSelect(String(z.id))} title={z.description}>
-            <span className="p-name">{z.name}</span>
-            <span className="p-count">{ok ? show(counts[z.id]) : '–'}</span>
-            <span className="p-note">{ok ? 'residents' : 'not assigned'}</span>
-          </button>
-        );
-      })}
+      {!single && (
+        <button type="button" className="purok-btn" aria-pressed={!selected} onClick={() => onSelect('')}>
+          <span className="p-name">{assignedZones.length ? 'All my puroks' : 'All puroks'}</span>
+          <span className="p-count">{loading ? '–' : total}</span>
+          <span className="p-note">residents</span>
+        </button>
+      )}
+      {visible.map((z) => (
+        <button
+          key={z.id}
+          type="button"
+          className="purok-btn"
+          aria-pressed={single || String(selected) === String(z.id)}
+          onClick={() => onSelect(single ? '' : String(z.id))}
+          title={z.description}
+        >
+          <span className="p-name">{z.name}</span>
+          <span className="p-count">{show(counts[z.id])}</span>
+          <span className="p-note">{single ? z.description : 'residents'}</span>
+        </button>
+      ))}
     </div>
   );
 }
