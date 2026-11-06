@@ -2,34 +2,37 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Alert } from '../components/Alert.jsx';
-import { Skeleton, SkeletonList } from '../components/Skeleton.jsx';
-import { EmptyState } from '../components/EmptyState.jsx';
-import { Breadcrumb } from '../components/Breadcrumb.jsx';
-import { Card } from '../components/Card.jsx';
+import { SkeletonList } from '../components/Skeleton.jsx';
 import { Button } from '../components/Button.jsx';
 import { showToast } from '../components/Toast.jsx';
-import { ZONES, MASTERLIST_CATEGORIES } from '../constants.js';
-import { Printer, FileText, Baby, Heart, Accessibility, Users as UsersIcon } from 'lucide-react';
+import { ZONES, MASTERLIST_CATEGORIES, CATEGORY_THEME } from '../constants.js';
+import { Printer, Baby, HeartPulse, Accessibility, Users as UsersIcon, PenLine } from 'lucide-react';
+
+const CATEGORY_ICON = { SENIOR_CITIZEN: UsersIcon, UNDER_FIVE: Baby, PREGNANT: HeartPulse, PWD: Accessibility };
+const SHORT_LABEL = { SENIOR_CITIZEN: 'Senior citizens', UNDER_FIVE: 'Under-five children', PREGNANT: 'Pregnant women', PWD: 'Persons with disability' };
 
 export function MasterlistsPage() {
   const { user } = useAuth();
   const isBHW = user?.role === 'BHW';
   const assignedZones = user?.zone_ids || [];
+  const assignedKey = assignedZones.join(',');
+  const defaultArea = isBHW ? `Assigned puroks (${assignedKey})` : 'All puroks, Barangay Tago';
 
   const [category, setCategory] = useState('SENIOR_CITIZEN');
   const [zoneId, setZoneId] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [counts, setCounts] = useState({});
 
-  const [barangayName, setBarangayName] = useState('Barangay Tago');
+  const [barangayName, setBarangayName] = useState('Republic of the Philippines · City of Naga · Barangay Tago');
   const [healthCenterName, setHealthCenterName] = useState('Barangay Tago Health Center');
-  const [coverageArea, setCoverageArea] = useState(isBHW ? `Assigned Puroks (${assignedZones.join(', ')})` : 'All Puroks (Barangay Tago)');
+  const [coverageArea, setCoverageArea] = useState(defaultArea);
   const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
   const [preparedBy, setPreparedBy] = useState(user?.full_name || '');
-  const [preparedByRole, setPreparedByRole] = useState(user?.role === 'BHW' ? 'Barangay Health Worker (BHW)' : (user?.role || ''));
+  const [preparedByRole, setPreparedByRole] = useState(user?.role === 'BHW' ? 'Barangay Health Worker' : user?.role === 'MIDWIFE' ? 'Midwife' : '');
   const [certifiedBy, setCertifiedBy] = useState('Maria Santos, RM');
-  const [certifiedByRole, setCertifiedByRole] = useState('Rural Health Midwife / Clinic Supervisor');
+  const [certifiedByRole, setCertifiedByRole] = useState('Rural Health Midwife');
 
   const fetchMasterlist = useCallback(async () => {
     setLoading(true);
@@ -40,132 +43,130 @@ export function MasterlistsPage() {
       if (zoneId) params.set('zone_id', zoneId);
       const res = await api(`/api/masterlists?${params.toString()}`);
       setData(res);
+      setCounts((prev) => ({ ...prev, [category]: res.total ?? 0 }));
     } catch (err) {
-      setError(err.message || 'Failed to generate masterlist.');
-      showToast({ type: 'danger', message: 'Failed to generate masterlist.' });
+      setError(err.message || 'The masterlist could not be generated.');
+      showToast({ type: 'danger', message: 'The masterlist could not be generated.' });
     } finally { setLoading(false); }
   }, [category, zoneId]);
 
   useEffect(() => { fetchMasterlist(); }, [fetchMasterlist]);
 
+  /* Totals for every programme tab, refreshed when the purok changes. */
   useEffect(() => {
-    const area = zoneId
-      ? (ZONES.find((z) => String(z.id) === String(zoneId))?.name || '')
-      : (isBHW ? `Assigned Puroks (${assignedZones.join(', ')})` : 'All Puroks (Barangay Tago)');
-    setCoverageArea(area);
-  }, [zoneId, isBHW, assignedZones]);
+    let cancelled = false;
+    Promise.all(MASTERLIST_CATEGORIES.map(async (c) => {
+      try {
+        const params = new URLSearchParams({ category: c.key });
+        if (zoneId) params.set('zone_id', zoneId);
+        const res = await api(`/api/masterlists?${params.toString()}`);
+        return [c.key, res.total ?? 0];
+      } catch { return [c.key, undefined]; }
+    })).then((entries) => { if (!cancelled) setCounts(Object.fromEntries(entries)); });
+    return () => { cancelled = true; };
+  }, [zoneId]);
 
-  const handlePrint = () => { window.print(); };
+  useEffect(() => {
+    setCoverageArea(zoneId ? (ZONES.find((z) => String(z.id) === String(zoneId))?.name || '') : defaultArea);
+  }, [zoneId, defaultArea]);
 
-  const activeCategoryObj = MASTERLIST_CATEGORIES.find((c) => c.key === category);
-
-  const getCategoryIcon = (key, cls = 'h-4 w-4') => {
-    switch (key) {
-      case 'SENIOR_CITIZEN': return <UsersIcon className={cls} />;
-      case 'UNDER_FIVE': return <Baby className={cls} />;
-      case 'PREGNANT': return <Heart className={cls} />;
-      case 'PWD': return <Accessibility className={cls} />;
-      default: return <FileText className={cls} />;
-    }
-  };
-
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/' },
-    { label: 'Program Masterlists' },
-  ];
+  const active = MASTERLIST_CATEGORIES.find((c) => c.key === category);
+  const theme = CATEGORY_THEME[category];
+  const extraCol = category === 'PREGNANT' || category === 'PWD';
+  const cols = extraCol ? 11 : 10;
 
   return (
-    <div className="page-stack" style={{ animation: 'fadeInUp 0.3s ease backwards' }}>
-      <div className="no-print"><Breadcrumb items={breadcrumbItems} /></div>
-
+    <div className="page-stack">
       <div className="page-header no-print">
-        <div className="page-title-group">
+        <div>
           <h1 className="page-title">Program masterlists</h1>
-          <p className="page-subtitle">
-            Target-group lists generated from the resident records, ready to print on the health center letterhead.
-          </p>
+          <p className="page-subtitle">Target lists built from the resident records. Choose a program, check the sheet, then print.</p>
         </div>
-        <div className="page-actions no-print">
-          <Button variant="primary" onClick={handlePrint} iconLeft={<Printer className="h-4 w-4" />}>Print masterlist</Button>
+        <div className="page-actions">
+          <Button variant="primary" onClick={() => window.print()} iconLeft={<Printer className="h-4 w-4" />} disabled={loading}>Print masterlist</Button>
         </div>
       </div>
 
       <div className="no-print"><Alert type="danger" message={error} onClose={() => setError('')} /></div>
 
-      <div className="tabs-pill no-print">
-        {MASTERLIST_CATEGORIES.map((cat) => (
-          <button key={cat.key} type="button" className={`tab-pill-btn ${category === cat.key ? 'active' : ''}`} onClick={() => setCategory(cat.key)} aria-pressed={category === cat.key}>
-            {getCategoryIcon(cat.key)}<span>{cat.label}</span>
-          </button>
-        ))}
+      <div className="program-tabs no-print" role="group" aria-label="Program">
+        {MASTERLIST_CATEGORIES.map((cat) => {
+          const Icon = CATEGORY_ICON[cat.key];
+          return (
+            <button key={cat.key} type="button" className={`program-tab ${CATEGORY_THEME[cat.key]}`} aria-pressed={category === cat.key} onClick={() => setCategory(cat.key)}>
+              <span className="pt-top">
+                <span className="pt-count">{counts[cat.key] ?? '–'}</span>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <span className="pt-label">{SHORT_LABEL[cat.key]}</span>
+              <span className="pt-desc">{cat.desc}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="toolbar no-print" style={{ paddingBottom: '1rem' }}>
-        <label htmlFor="ml_zone" style={{ fontSize: 'var(--fs-sm)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>Purok</label>
-        <select id="ml_zone" className="form-select" style={{ width: 'auto', minWidth: '200px' }} value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
-          <option value="">{isBHW ? 'All assigned puroks' : 'All puroks (barangay-wide)'}</option>
-          {ZONES.map((z) => {
-            const canAccess = !isBHW || assignedZones.includes(z.id);
-            if (!canAccess) return null;
-            return <option key={z.id} value={z.id}>{z.name}</option>;
-          })}
+      <div className="toolbar no-print">
+        <label htmlFor="ml_zone" className="form-label" style={{ margin: 0 }}>Purok</label>
+        <select id="ml_zone" className="form-select" value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+          <option value="">{isBHW ? 'All my puroks' : 'All puroks'}</option>
+          {ZONES.filter((z) => !isBHW || assignedZones.includes(z.id)).map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
         </select>
+        <span className="sheet-hint"><PenLine className="h-4 w-4" />Click any text on the letterhead or sign-off to edit it before printing.</span>
         <span className="toolbar-meta">
-          <strong>{data?.total ?? 0}</strong> {data?.total === 1 ? 'resident' : 'residents'} in this list
-          {data?.generated_at ? <> · generated {new Date(data.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</> : null}
+          <strong>{data?.total ?? 0}</strong> {data?.total === 1 ? 'resident' : 'residents'}
+          {data?.generated_at ? <>, generated {new Date(data.generated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</> : null}
         </span>
       </div>
 
-      <Card style={{ padding: '0' }} className="print-card">
-        <div style={{ padding: '1.5rem' }}>
-          <div className="print-letterhead" style={{ textAlign: 'center', marginBottom: '1rem', borderBottom: '2px solid var(--teal-800)', paddingBottom: '0.75rem' }}>
-            <input value={barangayName} onChange={(e) => setBarangayName(e.target.value)} style={{ display: 'block', width: '100%', textAlign: 'center', fontSize: 'var(--fs-xs)', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--slate-600)', fontWeight: 700, border: 'none', background: 'transparent', outline: 'none', marginBottom: '2px' }} />
-            <input value={healthCenterName} onChange={(e) => setHealthCenterName(e.target.value)} style={{ display: 'block', width: '100%', textAlign: 'center', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-heading)', border: 'none', background: 'transparent', outline: 'none', margin: '4px 0' }} />
-            <input value={`OFFICIAL MASTERLIST OF ${activeCategoryObj?.label.toUpperCase()}`} onChange={() => {}} readOnly style={{ display: 'block', width: '100%', textAlign: 'center', fontSize: '1.05rem', fontWeight: 800, color: 'var(--teal-700)', border: 'none', background: 'transparent', outline: 'none', marginTop: '4px', letterSpacing: '0.02em' }} />
-            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span>Coverage Area:</span>
-              <input value={coverageArea} onChange={(e) => setCoverageArea(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: 700, color: 'var(--text-heading)', fontSize: 'var(--fs-xs)', width: 'auto', minWidth: '120px', textAlign: 'center' }} />
-              <span>· Report Date:</span>
-              <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} style={{ border: 'none', background: 'transparent', outline: 'none', fontWeight: 700, color: 'var(--text-heading)', fontSize: 'var(--fs-xs)' }} />
+      <div className="sheet-desk">
+        <article className={`sheet ${theme}`} aria-label={`Masterlist of ${active?.label}`}>
+          <div className="sheet-tab" aria-hidden="true" />
+          <header className="letterhead">
+            <input className="lh-input lh-small" value={barangayName} onChange={(e) => setBarangayName(e.target.value)} aria-label="Letterhead line" />
+            <input className="lh-input lh-big" value={healthCenterName} onChange={(e) => setHealthCenterName(e.target.value)} aria-label="Health center name" />
+            <p className="lh-title">Masterlist of {active?.label}</p>
+            <div className="lh-meta">
+              <label>Coverage area <input className="lh-input" value={coverageArea} onChange={(e) => setCoverageArea(e.target.value)} /></label>
+              <label>Report date <input type="date" className="lh-input" value={reportDate} onChange={(e) => setReportDate(e.target.value)} /></label>
             </div>
-          </div>
+          </header>
 
-          <div className="table-wrap" style={{ border: '1px solid var(--slate-400)', borderRadius: 0 }}>
-            <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="sheet-scroll">
+            <table className="sheet-table">
               <thead>
                 <tr>
-                  <th style={{ width: '36px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)', textAlign: 'center' }}>#</th>
-                  <th style={{ border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Resident Full Name</th>
-                  <th style={{ border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Household No.</th>
-                  <th style={{ width: '90px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Purok</th>
-                  <th style={{ border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Birth Date</th>
-                  <th style={{ width: '70px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Age</th>
-                  <th style={{ width: '60px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Sex</th>
-                  {category === 'PREGNANT' && <th style={{ width: '90px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>LMP Date</th>}
-                  {category === 'PWD' && <th style={{ border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Disability</th>}
-                  <th style={{ border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>Medical Conditions</th>
-                  <th style={{ width: '110px', border: '1px solid var(--slate-400)', background: 'var(--slate-100)' }}>PhilHealth No.</th>
+                  <th className="c" style={{ width: 36 }}>No.</th>
+                  <th>Name (last, first, middle)</th>
+                  <th>Household no.</th>
+                  <th className="c">Purok</th>
+                  <th>Birth date</th>
+                  <th className="c">Age</th>
+                  <th className="c">Sex</th>
+                  {category === 'PREGNANT' && <th className="c">LMP</th>}
+                  {category === 'PWD' && <th>Disability</th>}
+                  <th>Conditions</th>
+                  <th>PhilHealth no.</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={category === 'PREGNANT' || category === 'PWD' ? 11 : 10} style={{ padding: 0, border: 'none' }}><SkeletonList count={4} variant="row" /></td></tr>
+                  <tr><td colSpan={cols} style={{ padding: 0 }}><SkeletonList count={4} variant="row" /></td></tr>
                 ) : !data?.items || data.items.length === 0 ? (
-                  <tr><td colSpan={category === 'PREGNANT' || category === 'PWD' ? 11 : 10} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)' }}>No records found.</td></tr>
+                  <tr><td colSpan={cols} className="c" style={{ padding: '1.5rem', color: '#555' }}>No residents are in this list for the selected purok.</td></tr>
                 ) : (
                   data.items.map((r, i) => (
                     <tr key={r.id}>
-                      <td style={{ border: '1px solid var(--slate-300)', textAlign: 'center', fontSize: 'var(--fs-xs)' }}>{i + 1}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', fontWeight: 600 }}>{r.last_name}, {r.first_name} {r.middle_name || ''}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', fontSize: 'var(--fs-xs)' }}>{r.household_no}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', textAlign: 'center' }}>{r.zone_name}</td>
-                      <td style={{ border: '1px solid var(--slate-300)' }}>{r.birth_date}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', textAlign: 'center' }}>{r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months} mos`}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', textAlign: 'center' }}>{r.sex === 'M' ? 'Male' : 'Female'}</td>
-                      {category === 'PREGNANT' && <td style={{ border: '1px solid var(--slate-300)', textAlign: 'center' }}>{r.lmp_date || 'N/A'}</td>}
-                      {category === 'PWD' && <td style={{ border: '1px solid var(--slate-300)' }}>{r.disability_type || r.disability_type_code || 'N/A'}</td>}
-                      <td style={{ border: '1px solid var(--slate-300)', fontSize: 'var(--fs-xs)' }}>{(r.medical_conditions && r.medical_conditions.length > 0) ? r.medical_conditions.map((c) => c.condition_code).join(', ') : 'None'}</td>
-                      <td style={{ border: '1px solid var(--slate-300)', fontSize: 'var(--fs-xs)' }}>{r.philhealth_id ? r.philhealth_id : '—'}</td>
+                      <td className="c">{i + 1}</td>
+                      <td className="name">{r.last_name}, {r.first_name} {r.middle_name || ''}</td>
+                      <td><code>{r.household_no}</code></td>
+                      <td className="c">{r.zone_name}</td>
+                      <td>{r.birth_date}</td>
+                      <td className="c">{r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months} mos`}</td>
+                      <td className="c">{r.sex === 'M' ? 'M' : 'F'}</td>
+                      {category === 'PREGNANT' && <td className="c">{r.lmp_date || '—'}</td>}
+                      {category === 'PWD' && <td>{r.disability_type || r.disability_type_code || '—'}</td>}
+                      <td>{r.medical_conditions?.length ? r.medical_conditions.map((c) => c.condition_code).join(', ') : 'None'}</td>
+                      <td><code>{r.philhealth_id || '—'}</code></td>
                     </tr>
                   ))
                 )}
@@ -173,21 +174,20 @@ export function MasterlistsPage() {
             </table>
           </div>
 
-          <div style={{ marginTop: '1.25rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+          <footer className="sheet-sign">
             <div>
-              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--slate-600)', marginBottom: '2rem', fontWeight: 700 }}>Prepared by:</div>
-              <input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} style={{ width: '80%', paddingBottom: '4px', fontWeight: 600, border: 'none', borderBottom: '1px solid var(--ink)', background: 'transparent', outline: 'none', fontSize: 'var(--fs-base)', color: 'var(--text-heading)' }} />
-              <input value={preparedByRole} onChange={(e) => setPreparedByRole(e.target.value)} style={{ fontSize: 'var(--fs-xs)', color: 'var(--slate-600)', marginTop: '4px', border: 'none', background: 'transparent', outline: 'none', width: '80%' }} />
+              <p className="lbl">Prepared by</p>
+              <input className="lh-input sig-name" value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} aria-label="Prepared by name" />
+              <input className="lh-input sig-role" value={preparedByRole} onChange={(e) => setPreparedByRole(e.target.value)} aria-label="Prepared by position" />
             </div>
             <div>
-              <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--slate-600)', marginBottom: '2rem', fontWeight: 700 }}>Certified Correct:</div>
-              <input value={certifiedBy} onChange={(e) => setCertifiedBy(e.target.value)} style={{ width: '80%', paddingBottom: '4px', fontWeight: 600, border: 'none', borderBottom: '1px solid var(--ink)', background: 'transparent', outline: 'none', fontSize: 'var(--fs-base)', color: 'var(--text-heading)' }} />
-              <input value={certifiedByRole} onChange={(e) => setCertifiedByRole(e.target.value)} style={{ fontSize: 'var(--fs-xs)', color: 'var(--slate-600)', marginTop: '4px', border: 'none', background: 'transparent', outline: 'none', width: '80%' }} />
+              <p className="lbl">Certified correct</p>
+              <input className="lh-input sig-name" value={certifiedBy} onChange={(e) => setCertifiedBy(e.target.value)} aria-label="Certified by name" />
+              <input className="lh-input sig-role" value={certifiedByRole} onChange={(e) => setCertifiedByRole(e.target.value)} aria-label="Certified by position" />
             </div>
-          </div>
-        </div>
-      </Card>
-
+          </footer>
+        </article>
+      </div>
     </div>
   );
 }

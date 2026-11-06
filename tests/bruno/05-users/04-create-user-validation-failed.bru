@@ -1,0 +1,44 @@
+meta {
+  name: Create User - Validation Failed
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "midwife_bad_zones",
+    "password": "Password123!",
+    "full_name": "Invalid Midwife With Zones",
+    "role": "MIDWIFE",
+    "zone_ids": [1]
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error.code: eq validation_failed
+}
+
+tests {
+  test("status code is 400 Bad Request", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+  test("error code is validation_failed", function() {
+    expect(res.body.error.code).to.equal("validation_failed");
+  });
+}
+

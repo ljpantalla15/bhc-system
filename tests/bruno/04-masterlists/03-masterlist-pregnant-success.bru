@@ -1,0 +1,35 @@
+meta {
+  name: Masterlist - Pregnant Success
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/masterlists?category=PREGNANT
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category: PREGNANT
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.category: eq PREGNANT
+  res.body.items: isDefined
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("category is PREGNANT", function() {
+    expect(res.body.category).to.equal("PREGNANT");
+  });
+}
+

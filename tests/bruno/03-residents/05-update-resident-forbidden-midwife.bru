@@ -1,0 +1,40 @@
+meta {
+  name: Update Resident - Midwife Forbidden
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/residents/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "occupation": "Health Specialist"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden for Midwife", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+

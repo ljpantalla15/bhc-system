@@ -139,3 +139,93 @@ export const AGE_RISK_GROUPS = {
   A: 'Adult (20-59 yrs)',
   SC: 'Senior Citizen (60+ yrs)',
 };
+
+/* -------------------------------------------------------------------------- *
+ * Programme colour is a system, not decoration: each masterlist programme
+ * owns exactly one flat field, and every chip that carries that programme's
+ * identity uses the same field. Nothing else in the app is allowed to be
+ * these colours.
+ * -------------------------------------------------------------------------- */
+export const PROGRAMME_STYLE = {
+  SENIOR_CITIZEN: { wall: 'wall-senior', chip: 'chip-senior', ink: '#7a5200' },
+  UNDER_FIVE: { wall: 'wall-child', chip: 'chip-child', ink: '#0b7a3d' },
+  PREGNANT: { wall: 'wall-maternal', chip: 'chip-maternal', ink: '#c22560' },
+  PWD: { wall: 'wall-pwd', chip: 'chip-pwd', ink: '#5b3fa8' },
+};
+
+/** Target-group chips borrow a programme colour only when one owns them. */
+export function ageGroupChip(group) {
+  if (group === 'SC') return 'chip-senior';
+  if (group === 'N' || group === 'I' || group === 'PSAC') return 'chip-child';
+  return 'chip-plain';
+}
+
+/** The flat colour behind a chip, for surfaces that need a solid field. */
+export const CHIP_HEX = {
+  'chip-senior': '#f2b705',
+  'chip-child': '#0b7a3d',
+  'chip-maternal': '#c22560',
+  'chip-pwd': '#5b3fa8',
+  'chip-plain': '#aebecc',
+};
+
+/** Target group from a birth date, mirroring the API's age_risk_group codes. */
+export function ageRiskGroup(dob, ref) {
+  if (!dob) return null;
+  const b = new Date(`${dob}T00:00:00`);
+  if (Number.isNaN(b.getTime())) return null;
+  let years = ref.getFullYear() - b.getFullYear();
+  const months = ref.getMonth() - b.getMonth();
+  if (months < 0 || (months === 0 && ref.getDate() < b.getDate())) years -= 1;
+  if (years < 0) return null;
+  if (years === 0) return months <= 0 ? 'N' : 'I';
+  if (years <= 4) return 'PSAC';
+  if (years <= 9) return 'SAC';
+  if (years <= 19) return 'AD';
+  if (years <= 59) return 'A';
+  return 'SC';
+}
+
+const AGE_GROUP_LABEL = {
+  N: 'Newborn', I: 'Infant', PSAC: 'Preschool', SAC: 'School age',
+  AD: 'Adolescent', A: 'Adult', SC: 'Senior citizen',
+};
+
+/**
+ * A member's programme chip. Pregnancy and disability are programmes in their
+ * own right and take precedence; otherwise the age group decides.
+ */
+export function memberChip(member, ref) {
+  if (member.is_pregnant) return { cls: 'chip-maternal', label: 'Maternal' };
+  if (member.is_pwd) return { cls: 'chip-pwd', label: 'PWD' };
+  const g = ageRiskGroup(member.birth_date, ref);
+  if (!g) return { cls: 'chip-plain', label: 'Age not set' };
+  return { cls: ageGroupChip(g), label: AGE_GROUP_LABEL[g] };
+}
+
+/** Short target-group names, keyed by the API's age_risk_group code. */
+export const AGE_GROUP_SHORT = AGE_GROUP_LABEL;
+
+/** CSS variable for a chip class, used for folder-tab stripes. */
+export const CHIP_VAR = {
+  'chip-senior': 'var(--senior)',
+  'chip-child': 'var(--child)',
+  'chip-maternal': 'var(--maternal)',
+  'chip-pwd': 'var(--pwd)',
+  'chip-plain': 'var(--plain)',
+};
+
+/** Programme stripe for a resident row from the API (uses its age_risk_group). */
+export function residentTab(r) {
+  if (r.is_pregnant) return CHIP_VAR['chip-maternal'];
+  if (r.is_pwd) return CHIP_VAR['chip-pwd'];
+  return CHIP_VAR[ageGroupChip(r.age_risk_group)];
+}
+
+/** Masterlist category to its programme theme class. */
+export const CATEGORY_THEME = {
+  SENIOR_CITIZEN: 't-senior',
+  UNDER_FIVE: 't-child',
+  PREGNANT: 't-maternal',
+  PWD: 't-pwd',
+};

@@ -1,0 +1,84 @@
+meta {
+  name: Create Household - Success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/households
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "household_no": "202611-TAGO-90001",
+    "date_of_visit": "2026-11-01",
+    "zone_id": 1,
+    "address_line": "Zone 1 Riverside",
+    "water_source_code": "LV3",
+    "toilet_facility_code": "P",
+    "is_4ps_household": false,
+    "reviewed_by_name": "Midwife Maria",
+    "members": [
+      {
+        "last_name": "Valdez",
+        "first_name": "Carlos",
+        "middle_name": "Navarro",
+        "relation_to_head": "HEAD",
+        "birth_date": "1982-05-14",
+        "sex": "M",
+        "civil_status_code": "M",
+        "education_code": "CG",
+        "religion_code": "RC",
+        "occupation": "Electrician",
+        "medical_conditions": [
+          { "condition_code": "HPN" }
+        ]
+      },
+      {
+        "last_name": "Valdez",
+        "first_name": "Elena",
+        "middle_name": "Santos",
+        "relation_to_head": "SPOUSE",
+        "birth_date": "1984-09-20",
+        "sex": "F",
+        "civil_status_code": "M",
+        "education_code": "CG",
+        "religion_code": "RC",
+        "occupation": "Teacher",
+        "is_pregnant": false,
+        "uses_fp": true,
+        "fp_method_code": "COC",
+        "fp_status_code": "CU"
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: in [201, 400]
+}
+
+script:post-response {
+  if (res.getStatus() === 201 && res.body.id) {
+    bru.setEnvVar("createdHouseholdId", res.body.id);
+    if (res.body.members && res.body.members.length > 0) {
+      bru.setEnvVar("deactivateResidentId", res.body.members[0].id);
+    }
+  }
+}
+
+tests {
+  test("status code is 201 Created or 400 duplicate if already run", function() {
+    expect([201, 400]).to.include(res.getStatus());
+  });
+}

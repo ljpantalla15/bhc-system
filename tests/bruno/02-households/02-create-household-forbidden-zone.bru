@@ -1,0 +1,53 @@
+meta {
+  name: Create Household - Forbidden Zone
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/households
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "household_no": "202611-TAGO-90002",
+    "date_of_visit": "2026-11-01",
+    "zone_id": 2,
+    "members": [
+      {
+        "last_name": "Reyes",
+        "first_name": "Test",
+        "relation_to_head": "HEAD",
+        "birth_date": "1990-01-01",
+        "sex": "M",
+        "civil_status_code": "S",
+        "education_code": "HG"
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+

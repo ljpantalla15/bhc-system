@@ -1,0 +1,35 @@
+meta {
+  name: Masterlist - Under Five Success
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/masterlists?category=UNDER_FIVE
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category: UNDER_FIVE
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.category: eq UNDER_FIVE
+  res.body.items: isDefined
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("category is UNDER_FIVE", function() {
+    expect(res.body.category).to.equal("UNDER_FIVE");
+  });
+}
+

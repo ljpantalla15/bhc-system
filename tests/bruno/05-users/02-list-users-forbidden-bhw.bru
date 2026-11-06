@@ -1,0 +1,30 @@
+meta {
+  name: List Users - BHW Forbidden
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden for non-Admin", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+

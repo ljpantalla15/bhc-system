@@ -1,0 +1,35 @@
+meta {
+  name: Masterlist - Senior Citizens Success
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/masterlists?category=SENIOR_CITIZEN
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category: SENIOR_CITIZEN
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.category: eq SENIOR_CITIZEN
+  res.body.items: isDefined
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("category is SENIOR_CITIZEN", function() {
+    expect(res.body.category).to.equal("SENIOR_CITIZEN");
+  });
+}
+

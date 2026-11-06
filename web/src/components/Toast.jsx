@@ -31,7 +31,6 @@ export function ToastProvider({ children }) {
   }, [toasts, remove]);
 
   const iconMap = { success: CheckCircle2, danger: AlertCircle, warning: AlertTriangle, info: Info };
-  const colorMap = { success: 'var(--success)', danger: 'var(--danger)', warning: 'var(--warning)', info: 'var(--info)' };
 
   return (
     <>
@@ -41,7 +40,7 @@ export function ToastProvider({ children }) {
           const Icon = iconMap[t.type] || Info;
           return (
             <div key={t.id} className={`toast toast-${t.type}`} role="alert" aria-live="polite">
-              <span className="toast-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: colorMap[t.type] }}>
+              <span className="toast-icon">
                 <Icon className="h-[18px] w-[18px]" />
               </span>
               <div className="toast-body">{t.message}</div>

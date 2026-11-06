@@ -1,0 +1,47 @@
+meta {
+  name: Login BHW1 - Success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "bhw1",
+    "password": "Demo#12345"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+  res.body.token_type: eq Bearer
+  res.body.user.role: eq BHW
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.token) {
+    bru.setEnvVar("bhw1Token", res.body.token);
+    bru.setEnvVar("token", res.body.token);
+  }
+}
+
+tests {
+  test("status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("user has role BHW and assigned zone 1", function() {
+    expect(res.body.user.role).to.equal("BHW");
+    expect(res.body.user.zone_ids).to.include(1);
+  });
+}
+

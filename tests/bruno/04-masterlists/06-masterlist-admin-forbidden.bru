@@ -1,0 +1,34 @@
+meta {
+  name: Masterlist - Admin Forbidden
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/masterlists?category=SENIOR_CITIZEN
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category: SENIOR_CITIZEN
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden for Admin", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+

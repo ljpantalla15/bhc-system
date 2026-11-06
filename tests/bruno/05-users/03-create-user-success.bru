@@ -1,0 +1,50 @@
+meta {
+  name: Create User - Success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/users
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "bhw_bruno_test",
+    "password": "Password123!",
+    "full_name": "Bruno Test Worker",
+    "role": "BHW",
+    "zone_ids": [1]
+  }
+}
+
+assert {
+  res.status: in [201, 400]
+}
+
+script:post-response {
+  if (res.getStatus() === 201 && res.body.id) {
+    bru.setEnvVar("createdUserId", res.body.id);
+  }
+}
+
+tests {
+  test("status code is 201 Created or 400 if already exists", function() {
+    expect([201, 400]).to.include(res.getStatus());
+    if (res.getStatus() === 201) {
+      expect(res.body.role).to.equal("BHW");
+      expect(res.body.zone_ids).to.deep.equal([1]);
+    }
+  });
+}
+

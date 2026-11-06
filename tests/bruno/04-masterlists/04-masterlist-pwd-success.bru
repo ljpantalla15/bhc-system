@@ -1,0 +1,35 @@
+meta {
+  name: Masterlist - PWD Success
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/masterlists?category=PWD
+  body: none
+  auth: bearer
+}
+
+params:query {
+  category: PWD
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.category: eq PWD
+  res.body.items: isDefined
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("category is PWD", function() {
+    expect(res.body.category).to.equal("PWD");
+  });
+}
+

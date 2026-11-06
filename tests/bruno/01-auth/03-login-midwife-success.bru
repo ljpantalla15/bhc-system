@@ -1,0 +1,44 @@
+meta {
+  name: Login Midwife - Success
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "username": "midwife1",
+    "password": "Demo#12345"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+  res.body.user.role: eq MIDWIFE
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.body.token) {
+    bru.setEnvVar("midwifeToken", res.body.token);
+  }
+}
+
+tests {
+  test("status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("user has role MIDWIFE", function() {
+    expect(res.body.user.role).to.equal("MIDWIFE");
+  });
+}
+

@@ -1,0 +1,30 @@
+meta {
+  name: Deactivate Resident - Midwife Forbidden
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/residents/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden for Midwife delete", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+

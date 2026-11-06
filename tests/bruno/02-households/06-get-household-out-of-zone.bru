@@ -1,0 +1,30 @@
+meta {
+  name: Get Household - Out of Zone Hidden
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/households/3
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.error.code: eq not_found
+}
+
+tests {
+  test("status code is 404 concealing existence outside assigned zone", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+  test("error code is not_found", function() {
+    expect(res.body.error.code).to.equal("not_found");
+  });
+}
+

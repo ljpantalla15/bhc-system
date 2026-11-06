@@ -1,0 +1,156 @@
+/* ==========================================================================
+   Barangay Tago Health Center: "Folder tabs"
+   Ink-navy and white everywhere. The only strong colour comes from the four
+   programme folder tabs (senior, under-five, maternal, PWD), the way health
+   centers colour-code family folders.
+   ========================================================================== */
+
+:root {
+  /* Ink and paper */
+  /* Calm slate-navy, never pure black or pure white, to cut glare on
+     phone screens. Body text is 7:1 or better (WCAG AAA) for older eyes. */
+  --ink: #1e3d59;
+  --ink-strong: #1e3d59;
+  --ink-soft: #e6edf3;
+  --ink-line: #b9c7d4;
+  --ground: #f1f3f5;
+  --surface: #fdfdfe;
+  --raised: #f5f7f9;
+  --border: #d5dde4;
+  --rule: #e4e9ee;
+  --control: #808e9b;
+  --text: #1a2733;
+  --text-heading: #1a2733;
+  --muted: #46535f;
+  --faint: #56636e;
+
+  /* One hue. Programmes are told apart by shade and label, not by colour. */
+  --navy-900: #172f45;
+  --navy-700: #1e3d59;
+  --navy-500: #4a6580;
+  --navy-300: #93a7ba;
+  --navy-200: #c3d0dc;
+  --navy-100: #e6edf3;
+  --navy-50: #f2f5f8;
+
+  --senior: var(--navy-700);
+  --senior-ink: var(--navy-700);
+  --senior-tint: var(--navy-100);
+  --child: var(--navy-700);
+  --child-ink: var(--navy-700);
+  --child-tint: var(--navy-100);
+  --maternal: var(--navy-700);
+  --maternal-ink: var(--navy-700);
+  --maternal-tint: var(--navy-100);
+  --pwd: var(--navy-700);
+  --pwd-ink: var(--navy-700);
+  --pwd-tint: var(--navy-100);
+  --plain: var(--navy-200);
+
+  /* Status: navy shades, except red, kept only for errors and deletion */
+  --negative: #b42318;
+  --negative-ink: #7a1710;
+  --negative-tint: #fdecea;
+  --negative-line: #f4c7c2;
+  --positive: var(--navy-700);
+  --positive-tint: var(--navy-100);
+  --positive-line: var(--navy-200);
+  --notice-ink: var(--navy-700);
+  --notice-tint: var(--navy-50);
+  --notice-line: var(--navy-200);
+  --info-ink: var(--navy-700);
+  --info-tint: var(--navy-50);
+  --info-line: var(--navy-200);
+
+  /* Legacy aliases still read by a few inline styles */
+  --accent: var(--ink);
+  --accent-ink: var(--ink);
+  --danger: var(--negative);
+  --danger-dark: var(--negative-ink);
+  --danger-bg: var(--negative-tint);
+  --danger-border: var(--negative-line);
+  --success: var(--positive);
+  --success-dark: var(--positive);
+  --warning: var(--notice-ink);
+  --warning-dark: var(--notice-ink);
+  --info: var(--info-ink);
+  --info-dark: var(--info-ink);
+  --text-muted: var(--muted);
+  --pill-negative-ink: var(--negative-ink);
+  --pill-negative-bg: var(--negative-tint);
+  --slate-300: #c9d3dc;
+  --slate-400: #8a97a3;
+  --slate-600: #46535f;
+  --slate-700: #2f3c48;
+
+  --font-ui: 'Atkinson Hyperlegible Next', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-ui);
+  --font-code: var(--font-ui);
+
+  /* Type scale (base 16px): smallest text is 13px, never smaller */
+  --fs-2xs: 0.8125rem;
+  --fs-xs: 0.875rem;
+  --fs-sm: 0.9333rem;
+  --fs-base: 1rem;
+  --fs-md: 1.0667rem;
+  --fs-lg: 1.1333rem;
+  --fs-xl: 1.3333rem;
+  --fs-2xl: 1.7333rem;
+  --fs-3xl: 2.4rem;
+
+  /* Radius follows hierarchy: controls < cards < dialogs; paper is square */
+  --r-control: 8px;
+  --r-card: 12px;
+  --r-dialog: 16px;
+  --r-paper: 3px;
+
+  --shadow-card: 0 1px 2px rgb(15 36 54 / 0.06);
+  --shadow-float: 0 18px 40px -14px rgb(15 36 54 / 0.35);
+  --ring: 0 0 0 3px rgb(30 61 89 / 0.28);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 140ms var(--ease);
+
+  --max-width: 1280px;
+  --control-height: 40px;
+  --topbar-height: 60px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; color-scheme: light; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-ui);
+  background: var(--ground);
+  color: var(--text);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input, select, textarea { font: inherit; color: inherit; }
+img { max-width: 100%; display: block; }
+code, .code { font-family: var(--font-ui); font-size: 1em; font-weight: 600; letter-spacing: 0.01em; }
+::selection { background: var(--ink-soft); color: var(--ink-strong); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+td.num, th.num { text-align: right; }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: 0.55; } }
+
+/* Phones: bigger text and 44px+ touch targets for older eyes and thumbs */
+@media (max-width: 720px) {
+  html { font-size: 17px; }
+  :root { --control-height: 46px; --fs-2xs: 0.8235rem; --fs-xs: 0.8824rem; --fs-sm: 0.9412rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

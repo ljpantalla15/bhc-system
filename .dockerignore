@@ -1,0 +1,11 @@
+.git
+.agents
+.env
+certs
+**/node_modules
+web/node_modules
+web/dist
+api/node_modules
+backups
+tests
+npm-debug.log

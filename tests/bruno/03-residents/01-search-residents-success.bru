@@ -1,0 +1,38 @@
+meta {
+  name: Search Residents - Success
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/residents?q=Reyes&page=1&page_size=10
+  body: none
+  auth: bearer
+}
+
+params:query {
+  q: Reyes
+  page: 1
+  page_size: 10
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.items: isDefined
+  res.body.total: gte 1
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("returns matching residents", function() {
+    expect(res.body.items).to.be.an("array");
+    expect(res.body.total).to.be.greaterThan(0);
+  });
+}
+

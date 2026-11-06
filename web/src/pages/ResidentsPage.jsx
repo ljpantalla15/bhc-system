@@ -7,7 +7,6 @@ import { Modal } from '../components/Modal.jsx';
 import { Pagination } from '../components/Pagination.jsx';
 import { Skeleton, SkeletonList } from '../components/Skeleton.jsx';
 import { EmptyState } from '../components/EmptyState.jsx';
-import { Breadcrumb } from '../components/Breadcrumb.jsx';
 import { PurokStrip } from '../components/Card.jsx';
 import { Button, IconButton } from '../components/Button.jsx';
 import { Input, FormGroup, FormGrid } from '../components/Form.jsx';
@@ -15,7 +14,7 @@ import { showToast } from '../components/Toast.jsx';
 import {
   ZONES, AGE_RISK_GROUPS, RELATIONS_TO_HEAD, CIVIL_STATUSES,
   EDUCATION_LEVELS, MEDICAL_CONDITIONS, DISABILITY_TYPES, FP_METHODS,
-  WATER_SOURCES, TOILET_FACILITIES,
+  WATER_SOURCES, TOILET_FACILITIES, AGE_GROUP_SHORT, ageGroupChip, residentTab,
 } from '../constants.js';
 import { Plus, Search, Eye, Pencil, Trash2, X, Check, Home } from 'lucide-react';
 
@@ -28,17 +27,6 @@ const Icons = {
   close: <X className="h-4 w-4" />,
   closeSm: <X className="h-3.5 w-3.5" />,
   household: <Home className="h-4 w-4" />,
-};
-
-/** Short target-group names for the directory column. */
-const AGE_GROUP_SHORT = {
-  N: 'Newborn',
-  I: 'Infant',
-  PSAC: 'Preschool',
-  SAC: 'School age',
-  AD: 'Adolescent',
-  A: 'Adult',
-  SC: 'Senior citizen',
 };
 
 export function ResidentsPage() {
@@ -228,25 +216,31 @@ export function ResidentsPage() {
     } finally { setActionLoading(false); }
   };
 
-  const renderSkeletonRows = () => (
-    <tr><td colSpan={7} style={{ padding: 0, border: 'none' }}><SkeletonList count={5} variant="row" /></td></tr>
+  const flagsFor = (r, withFp = true) => (
+    <div className="flags">
+      {r.is_pregnant && <span className="flag flag-maternal">Pregnant</span>}
+      {r.is_pwd && <span className="flag flag-pwd">PWD</span>}
+      {(r.medical_conditions || []).map((c, i) => (<span key={i} className="flag">{c.condition_code}</span>))}
+      {withFp && r.uses_fp && <span className="flag">FP</span>}
+    </div>
   );
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/' },
-    { label: 'Resident directory' },
-  ];
+  const groupChip = (code) => (
+    <span className={`pchip ${ageGroupChip(code)}`} title={AGE_RISK_GROUPS[code] || code}>{AGE_GROUP_SHORT[code] || code}</span>
+  );
+
+  const byHousehold = groupBy === 'household';
+  const colCount = byHousehold ? 7 : 8;
 
   return (
-    <div className="page-stack" style={{ animation: 'fadeInUp 0.3s ease backwards' }}>
-      <Breadcrumb items={breadcrumbItems} />
+    <div className="page-stack">
       <div className="page-header">
-        <div className="page-title-group">
-          <h1 className="page-title">Resident directory</h1>
+        <div>
+          <h1 className="page-title">Residents</h1>
           <p className="page-subtitle">
             {isBHW
-              ? `Verified health profiles for your assigned Purok (${assignedZones.join(', ')}).`
-              : 'Verified health profiles for every household in Barangay Tago.'}
+              ? `Residents in your assigned purok (${assignedZones.join(', ')}). Pick a purok to narrow the list.`
+              : 'All registered residents of Barangay Tago, by purok and household.'}
           </p>
         </div>
         <div className="page-actions">
@@ -262,74 +256,70 @@ export function ResidentsPage() {
         counts={purokCounts}
         assignedZones={assignedZones}
         loading={countsLoading}
+        selected={selectedZone}
+        onSelect={(z) => { setSelectedZone(z); setPage(1); }}
       />
 
-      <div className="toolbar" style={{ paddingBottom: '1rem' }}>
-        <form onSubmit={handleSearchSubmit} className="toolbar-search">
-          <label htmlFor="search_q" style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>Search residents</label>
-          <div className="search-field">
-            <span className="search-field-icon">{Icons.search}</span>
+      <div className="toolbar">
+        <form onSubmit={handleSearchSubmit} className="toolbar-search" role="search">
+          <label htmlFor="search_q" className="sr-only">Search residents</label>
+          <div className="input-affix has-btn">
+            <span className="affix-icon">{Icons.search}</span>
             <Input id="search_q" placeholder="Search by name" value={q} onChange={(e) => setQ(e.target.value)} />
-            {q && (<button type="button" onClick={() => { setQ(''); setPage(1); }} className="search-field-clear" aria-label="Clear search">{Icons.close}</button>)}
+            {q && (<button type="button" onClick={() => { setQ(''); setPage(1); }} className="affix-btn" aria-label="Clear search">{Icons.close}</button>)}
           </div>
         </form>
 
-        <select className="form-select" style={{ width: 'auto', minWidth: '170px' }} value={selectedZone} onChange={(e) => { setSelectedZone(e.target.value); setPage(1); }} aria-label="Filter by purok">
-          <option value="">All puroks in scope</option>
-          {ZONES.map((z) => {
-            const canAccess = !isBHW || assignedZones.includes(z.id);
-            if (!canAccess) return null;
-            return <option key={z.id} value={z.id}>{z.name}</option>;
-          })}
-        </select>
-
-        <select className="form-select" style={{ width: 'auto', minWidth: '190px' }} value={ageGroup} onChange={(e) => { setAgeGroup(e.target.value); setPage(1); }} aria-label="Filter by target group">
+        <select className="form-select" value={ageGroup} onChange={(e) => { setAgeGroup(e.target.value); setPage(1); }} aria-label="Filter by target group">
           <option value="">All target groups</option>
           {Object.entries(AGE_RISK_GROUPS).map(([code, label]) => (<option key={code} value={code}>{label}</option>))}
         </select>
 
-        {(q || selectedZone || ageGroup) && (
-          <Button variant="secondary" onClick={handleResetFilters}>Clear filters</Button>
-        )}
-
-        <div className="seg-control" style={{ width: 'auto' }} role="group" aria-label="Group residents by">
-          <button type="button" className={`seg-btn ${groupBy === 'household' ? 'on-f' : ''}`} aria-pressed={groupBy === 'household'} onClick={() => handleGroupByChange('household')}>By household</button>
-          <button type="button" className={`seg-btn ${groupBy === 'name' ? 'on-f' : ''}`} aria-pressed={groupBy === 'name'} onClick={() => handleGroupByChange('name')}>By name</button>
+        <div className="seg-control" role="group" aria-label="Group residents by">
+          <button type="button" className={`seg-btn ${byHousehold ? 'on' : ''}`} aria-pressed={byHousehold} onClick={() => handleGroupByChange('household')}>By household</button>
+          <button type="button" className={`seg-btn ${!byHousehold ? 'on' : ''}`} aria-pressed={!byHousehold} onClick={() => handleGroupByChange('name')}>By name</button>
         </div>
 
+        {(q || selectedZone || ageGroup) && (
+          <Button variant="ghost" onClick={handleResetFilters} className="full">Clear filters</Button>
+        )}
+
         <span className="toolbar-meta">
-          {groupBy === 'household' ? (
-            <><strong>{totalHouseholds}</strong> {totalHouseholds === 1 ? 'household' : 'households'} · <strong>{totalResidents}</strong> {totalResidents === 1 ? 'resident' : 'residents'}</>
+          {byHousehold ? (
+            <><strong>{totalHouseholds}</strong> {totalHouseholds === 1 ? 'household' : 'households'}, <strong>{totalResidents}</strong> {totalResidents === 1 ? 'resident' : 'residents'}</>
           ) : (
             <><strong>{total}</strong> {total === 1 ? 'resident' : 'residents'}</>
           )}
         </span>
       </div>
 
-      <div className="table-wrap">
-          <table className="table">
+      <div className="table-card">
+        <div className="table-wrap">
+          <table className="table table-stack">
             <thead>
               <tr>
-                <th style={{ width: '290px' }}>Resident</th>
-                <th style={{ width: '175px' }}>Household no.</th>
-                <th style={{ width: '100px' }}>Purok</th>
-                <th style={{ width: '80px' }} className="num">Age</th>
-                <th style={{ width: '90px' }}>Sex</th>
-                <th style={{ width: '190px' }}>Target group</th>
-                <th style={{ width: '170px' }}>Health flags</th>
-                <th style={{ width: '120px', textAlign: 'right' }}>Actions</th>
+                <th>Resident</th>
+                {!byHousehold && <th>Household no.</th>}
+                <th>Purok</th>
+                <th className="num">Age</th>
+                <th>Sex</th>
+                <th>Target group</th>
+                <th>Health flags</th>
+                <th style={{ textAlign: 'right' }}><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
-              {loading ? renderSkeletonRows() : residents.length === 0 ? (
-                <tr><td colSpan={8}><EmptyState title="No residents found" description="No resident records matched the current filters." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
+              {loading ? (
+                <tr><td colSpan={colCount + 1} style={{ padding: '0.5rem 0' }}><SkeletonList count={6} variant="row" /></td></tr>
+              ) : residents.length === 0 ? (
+                <tr><td colSpan={colCount + 1}><EmptyState title="No residents match" description="Try another name, purok, or target group." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
               ) : (
                 tableRows.map((row) => {
                   if (row.kind === 'group') {
                     return (
                       <tr key={`hh-${row.household_id}`} className="group-row">
-                        <td colSpan={3}>
-                          <button type="button" className="group-link" onClick={() => openHousehold(row.household_id)}>
+                        <td colSpan={colCount - 1}>
+                          <button type="button" className="group-link" onClick={() => openHousehold(row.household_id)} disabled={householdLoading}>
                             {Icons.household}
                             <code>{row.household_no}</code>
                             <span className="group-meta">{row.zone_name}</span>
@@ -340,8 +330,7 @@ export function ResidentsPage() {
                             </span>
                           </button>
                         </td>
-                        <td colSpan={4} className="group-tail" />
-                        <td style={{ textAlign: 'right' }}>
+                        <td colSpan={2} style={{ textAlign: 'right' }}>
                           <button type="button" className="btn btn-ghost btn-sm" onClick={() => openHousehold(row.household_id)}>Open household</button>
                         </td>
                       </tr>
@@ -349,37 +338,23 @@ export function ResidentsPage() {
                   }
                   const r = row.resident;
                   return (
-                    <tr key={r.id} className="member-row">
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <div className="avatar-cell">{(r.first_name || '?').charAt(0).toUpperCase()}</div>
-                          <div style={{ minWidth: 0 }}>
-                            <strong style={{ color: 'var(--text-heading)', fontSize: 'var(--fs-sm)', display: 'block', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.last_name}, {r.first_name} {r.middle_name || ''}</strong>
-                            <div style={{ fontSize: 'var(--fs-xs)', color: 'var(--muted)', marginTop: '1px' }}>
-                              {r.relation_to_head === 'HEAD'
-                                ? <span style={{ color: 'var(--accent-ink)', fontWeight: 600 }}>Head of household</span>
-                                : <span style={{ textTransform: 'capitalize' }}>{String(r.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span>}
-                            </div>
-                          </div>
-                        </div>
+                    <tr key={r.id}>
+                      <td className="tab-cell cell-name" style={{ '--tab': residentTab(r) }}>
+                        <strong>{r.last_name}, {r.first_name} {r.middle_name || ''}</strong>
+                        {r.relation_to_head === 'HEAD'
+                          ? <span className="is-head">Head of household</span>
+                          : <span>{RELATIONS_TO_HEAD.find((x) => x.code === r.relation_to_head)?.label || r.relation_to_head}</span>}
                       </td>
-                      <td>{groupBy === 'household' ? <span style={{ color: 'var(--faint)' }}>—</span> : <code>{r.household_no}</code>}</td>
-                      <td><span style={{ color: 'var(--muted)' }}>{r.zone_name}</span></td>
-                      <td className="num">{r.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
-                      <td><span style={{ color: 'var(--muted)' }}>{r.sex === 'M' ? 'Male' : 'Female'}</span></td>
-                      <td><span style={{ color: 'var(--muted)' }} title={AGE_RISK_GROUPS[r.age_risk_group] || r.age_risk_group}>{AGE_GROUP_SHORT[r.age_risk_group] || r.age_risk_group}</span></td>
+                      {!byHousehold && <td><code>{r.household_no}</code></td>}
+                      <td className="muted">{r.zone_name}</td>
+                      <td className="num">{r.age_years}<span className="faint"> yrs</span></td>
+                      <td className="muted">{r.sex === 'M' ? 'Male' : 'Female'}</td>
+                      <td>{groupChip(r.age_risk_group)}</td>
+                      <td>{flagsFor(r)}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                          {r.is_pregnant && <span className="badge badge-rose">Pregnant</span>}
-                          {(r.medical_conditions || []).map((c, i) => (<span key={i} className="badge badge-amber">{c.condition_code}</span>))}
-                          {r.is_pwd && <span className="badge badge-slate">PWD</span>}
-                          {r.uses_fp && <span className="badge badge-slate">Family planning</span>}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
                         <div className="row-actions">
-                          <IconButton icon={Icons.view} onClick={() => setViewingResident(r)} title="View profile" size="lg" />
-                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" size="lg" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate record" size="lg" /></>)}
+                          <IconButton icon={Icons.view} onClick={() => setViewingResident(r)} title="View profile" />
+                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate record" variant="ghost-danger" /></>)}
                         </div>
                       </td>
                     </tr>
@@ -393,9 +368,10 @@ export function ResidentsPage() {
           page={page}
           pageSize={pageSize}
           total={total}
-          unit={groupBy === 'household' ? 'households' : 'residents'}
+          unit={byHousehold ? 'households' : 'residents'}
           onPageChange={(p) => setPage(p)}
         />
+      </div>
 
       <Modal
         isOpen={!!viewingHousehold}
@@ -422,8 +398,8 @@ export function ResidentsPage() {
 
             <div className="panel">
               <div className="panel-head">Family members ({viewingHousehold.members.length})</div>
-              <div className="panel-body" style={{ padding: 0 }}>
-                <table className="table" style={{ fontSize: 'var(--fs-sm)' }}>
+              <div className="table-wrap">
+                <table className="table table-stack">
                   <thead>
                     <tr>
                       <th>Member</th>
@@ -438,20 +414,14 @@ export function ResidentsPage() {
                   <tbody>
                     {viewingHousehold.members.map((m) => (
                       <tr key={m.id}>
-                        <td>
-                          <strong style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{m.last_name}, {m.first_name} {m.middle_name || ''}</strong>
+                        <td className="tab-cell cell-name" style={{ '--tab': residentTab(m) }}>
+                          <strong>{m.last_name}, {m.first_name} {m.middle_name || ''}</strong>
                         </td>
                         <td><span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{String(m.relation_to_head || '').toLowerCase().replace(/_/g, ' ')}</span></td>
                         <td className="num">{m.age_years}<span style={{ color: 'var(--faint)' }}> yrs</span></td>
                         <td><span style={{ color: 'var(--muted)' }}>{m.sex === 'M' ? 'Male' : 'Female'}</span></td>
-                        <td><span style={{ color: 'var(--muted)' }}>{AGE_GROUP_SHORT[m.age_risk_group] || m.age_risk_group}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {m.is_pregnant && <span className="badge badge-rose">Pregnant</span>}
-                            {(m.medical_conditions || []).map((c, i) => (<span key={i} className="badge badge-amber">{c.condition_code}</span>))}
-                            {m.is_pwd && <span className="badge badge-slate">PWD</span>}
-                          </div>
-                        </td>
+                        <td>{groupChip(m.age_risk_group)}</td>
+                        <td>{flagsFor(m, false)}</td>
                         {isBHW && (
                           <td style={{ textAlign: 'right' }}>
                             <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setViewingHousehold(null); handleOpenEdit(m); }}>Edit</button>
@@ -470,8 +440,8 @@ export function ResidentsPage() {
       <Modal
         isOpen={!!viewingResident}
         onClose={() => setViewingResident(null)}
-        title="Resident profile details"
-        subtitle={`Health record #${viewingResident?.id || ''}`}
+        title={viewingResident ? `${viewingResident.first_name} ${viewingResident.last_name}` : 'Resident profile'}
+        subtitle={viewingResident ? `${viewingResident.zone_name}, household ${viewingResident.household_no}` : ''}
         isLarge
         footer={
           <>
@@ -523,7 +493,7 @@ export function ResidentsPage() {
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setEditingResident(null)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="resident-edit-form" disabled={actionLoading}>{actionLoading ? 'Saving...' : 'Save changes'}</Button>
+            <Button variant="primary" type="submit" form="resident-edit-form" disabled={actionLoading}>{actionLoading ? 'Saving…' : 'Save changes'}</Button>
           </>
         }
       >
@@ -626,12 +596,12 @@ export function ResidentsPage() {
       <Modal
         isOpen={!!deactivatingResident}
         onClose={() => setDeactivatingResident(null)}
-        title="Confirm deactivation"
-        subtitle="Permanent deletion is prohibited by audit rules."
+        title="Deactivate this resident?"
+        subtitle="Records are never deleted. They are marked inactive and kept for the audit trail."
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setDeactivatingResident(null)} disabled={actionLoading}>Cancel</Button>
-            <Button variant="danger" type="button" onClick={handleConfirmDeactivate} disabled={actionLoading}>{actionLoading ? 'Deactivating...' : 'Confirm deactivate'}</Button>
+            <Button variant="danger" type="button" onClick={handleConfirmDeactivate} disabled={actionLoading}>{actionLoading ? 'Deactivating…' : 'Deactivate resident'}</Button>
           </>
         }
       >
@@ -640,8 +610,8 @@ export function ResidentsPage() {
             <div className="notice notice-danger">
               <Trash2 className="h-[18px] w-[18px] shrink-0" style={{ color: 'var(--negative)' }} />
               <div>
-                <h4 style={{ color: 'var(--pill-negative-ink)', fontSize: 'var(--fs-base)', fontWeight: 600 }}>Deactivate {deactivatingResident.first_name} {deactivatingResident.last_name}?</h4>
-                <p style={{ fontSize: 'var(--fs-sm)', color: 'var(--pill-negative-ink)', marginTop: '3px', lineHeight: 1.5 }}>This sets <code>is_active = false</code> and removes the resident from active masterlists. The record and its audit trail are kept.</p>
+                <h4 style={{ fontSize: 'var(--fs-base)', fontWeight: 700 }}>Deactivate {deactivatingResident.first_name} {deactivatingResident.last_name}?</h4>
+                <p style={{ fontSize: 'var(--fs-sm)', marginTop: '3px' }}>They will no longer appear in the resident list or the program masterlists. Their record and change history are kept.</p>
               </div>
             </div>
             <FormGroup label="Reason for deactivation (optional audit note)">

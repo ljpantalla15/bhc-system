@@ -78,6 +78,16 @@ Map by constraint name (`err.constraint`), never by message text, and never forw
 - Show only the screens the role may use. The API still enforces access.
 - Household encoding form mirrors the paper Household Profiling Form: household header, then one row per member.
 
-## Security checklist
-HTTPS only (nginx), `helmet`, login rate limit, bcrypt, parameterized SQL, no secrets in git, no raw DB errors,
-Administrator cannot reach resident endpoints, backups documented and restore tested.
+## Security and Privacy checklist
+- **HTTPS Only**: Nginx TLS reverse proxy; only port 443 is published externally.
+- **Helmet**: Secures HTTP response headers with standard security practices.
+- **Authentication**: Login rate limit (10 attempts / 15 min per IP), bcrypt password hashing (cost factor 10), stateful server sessions (`auth_sessions`) paired with signed JWTs.
+- **Principle of Least Privilege**:
+  - API connects to PostgreSQL as `bhc_api`, not the database owner.
+  - Administrator role (`ADMIN`) is strictly prohibited from accessing resident health records, households, or masterlists (returns 403 Forbidden).
+  - Barangay Health Worker (`BHW`) is scoped exclusively to assigned puroks; unauthorized zone requests return 403, and unassigned records return 404 (concealing existence).
+  - Midwife (`MIDWIFE`) has read-only access across all zones; cannot create, modify, or deactivate records.
+- **Data Protection**: Parameterized SQL via `pg` (no string-built queries), no raw database errors or stack traces leaked to clients (`errorHandler.js`), never return password hashes.
+- **Audit Logging**: Every transaction sets `app.current_user_id` inside `withTransaction`, logging inserts, updates, and deactivations to `change_log`.
+- **Privacy & Statutory Compliance**: Synthetic data only; full statutory review in `docs/PRIVACY.md`.
+- **Operational Recovery**: Automated backup scripts (`scripts/backup.sh`, `scripts/backup.ps1`) and validated restore procedures (`docs/BACKUP_RECORD.md`).

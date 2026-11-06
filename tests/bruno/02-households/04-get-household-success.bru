@@ -1,0 +1,33 @@
+meta {
+  name: Get Household - Success
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/households/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq 1
+  res.body.household_no: isDefined
+  res.body.members: isDefined
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("returns household 1 with members", function() {
+    expect(res.body.id).to.equal(1);
+    expect(res.body.members).to.be.an("array");
+  });
+}
+

@@ -5,13 +5,31 @@ import { Modal } from '../components/Modal.jsx';
 import { Pagination } from '../components/Pagination.jsx';
 import { Skeleton, SkeletonList } from '../components/Skeleton.jsx';
 import { EmptyState } from '../components/EmptyState.jsx';
-import { Breadcrumb } from '../components/Breadcrumb.jsx';
 import { KpiStrip } from '../components/Card.jsx';
 import { Button } from '../components/Button.jsx';
 import { Input, FormGroup, FormCheck } from '../components/Form.jsx';
 import { ZONES } from '../constants.js';
 import { showToast } from '../components/Toast.jsx';
 import { Plus, Pencil, Check } from 'lucide-react';
+
+const ROLES = [
+  { code: 'BHW', label: 'Health worker', desc: 'Encodes and edits residents in assigned puroks.' },
+  { code: 'MIDWIFE', label: 'Midwife', desc: 'Reads all puroks and prints masterlists. No edits.' },
+  { code: 'ADMIN', label: 'Administrator', desc: 'Manages staff accounts. No resident data.' },
+];
+const ROLE_LABEL = { BHW: 'Health worker', MIDWIFE: 'Midwife', ADMIN: 'Administrator' };
+
+function RolePicker({ value, onChange }) {
+  return (
+    <div className="choice-grid" role="radiogroup" aria-label="Role">
+      {ROLES.map((r) => (
+        <button key={r.code} type="button" role="radio" aria-checked={value === r.code} className="choice-card" onClick={() => onChange(r.code)}>
+          <strong>{r.label}</strong><span>{r.desc}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -140,22 +158,15 @@ export function UsersPage() {
   };
 
   const renderSkeletonRows = () => (
-    <tr><td colSpan={7} style={{ padding: 0, border: 'none' }}><SkeletonList count={5} variant="row" /></td></tr>
+    <tr><td colSpan={6} style={{ padding: '0.5rem 0' }}><SkeletonList count={5} variant="row" /></td></tr>
   );
 
-  const breadcrumbItems = [
-    { label: 'Dashboard', href: '/' },
-    { label: 'User Accounts' },
-  ];
-
   return (
-    <div className="page-stack" style={{ animation: 'fadeInUp 0.3s ease backwards' }}>
-      <Breadcrumb items={breadcrumbItems} />
-
+    <div className="page-stack">
       <div className="page-header">
-        <div className="page-title-group">
+        <div>
           <h1 className="page-title">Staff accounts</h1>
-          <p className="page-subtitle">Health center accounts, their role, and the puroks they are assigned to.</p>
+          <p className="page-subtitle">Who can sign in, what role they have, and which puroks each health worker covers.</p>
         </div>
         <div className="page-actions">
           <Button variant="primary" onClick={() => setIsCreateOpen(true)} iconLeft={<Plus className="h-4 w-4" />}>Create account</Button>
@@ -167,64 +178,61 @@ export function UsersPage() {
 
       <KpiStrip
         items={[
-          { label: 'Accounts', value: total, sub: roleFilter ? `with the ${roleFilter} role` : 'all roles on record' },
+          { label: 'Accounts', value: total, sub: roleFilter ? `${ROLE_LABEL[roleFilter]} accounts` : 'all roles' },
           { label: 'Active', value: activeTotal, sub: 'can sign in to the system' },
           { label: 'Deactivated', value: Math.max(total - activeTotal, 0), sub: 'sessions revoked, records kept' },
         ]}
       />
 
-      <div className="toolbar" style={{ paddingBottom: '1rem' }}>
-        <label htmlFor="role_filter" style={{ fontSize: 'var(--fs-sm)', color: 'var(--muted)', whiteSpace: 'nowrap' }}>Role</label>
-        <select id="role_filter" className="form-select" style={{ width: 'auto', minWidth: '180px' }} value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}>
-          <option value="">All roles</option>
-          <option value="BHW">BHW</option>
-          <option value="MIDWIFE">Midwife</option>
-          <option value="ADMIN">Administrator</option>
-        </select>
-        <label className="form-check" style={{ marginBottom: 0 }}>
+      <div className="toolbar">
+        <div className="seg-control" role="group" aria-label="Filter by role">
+          {[{ code: '', label: 'All roles' }, ...ROLES].map((r) => (
+            <button key={r.code || 'all'} type="button" className={`seg-btn ${roleFilter === r.code ? 'on' : ''}`} aria-pressed={roleFilter === r.code} onClick={() => { setRoleFilter(r.code); setPage(1); }}>{r.label}</button>
+          ))}
+        </div>
+        <label className="form-check">
           <input type="checkbox" checked={includeInactive} onChange={(e) => { setIncludeInactive(e.target.checked); setPage(1); }} />
-          <span className="form-check-label">Include deactivated</span>
+          <span className="form-check-label">Show deactivated</span>
         </label>
-        <span className="toolbar-meta">
-          <strong>{users.length}</strong> of <strong>{total}</strong> accounts
-        </span>
+        <span className="toolbar-meta"><strong>{users.length}</strong> of <strong>{total}</strong> accounts</span>
       </div>
 
-      <div className="table-wrap">
+      <div className="table-card">
+        <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '150px' }}>Account</th>
-                <th>Full name</th>
-                <th style={{ width: '120px' }}>Role</th>
-                <th style={{ width: '150px' }}>Assigned puroks</th>
-                <th style={{ width: '110px' }}>Status</th>
-                <th style={{ width: '180px' }}>Last login</th>
-                <th style={{ width: '150px', textAlign: 'right' }}>Action</th>
+                <th>Staff member</th>
+                <th>Role</th>
+                <th>Puroks</th>
+                <th>Status</th>
+                <th>Last sign-in</th>
+                <th style={{ textAlign: 'right' }}><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
               {loading ? renderSkeletonRows() : users.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState title="No user accounts found" description="No accounts match the current filters." actionLabel={roleFilter ? 'Clear filter' : 'Create account'} action={roleFilter ? () => setRoleFilter('') : () => setIsCreateOpen(true)} /></td></tr>
+                <tr><td colSpan={6}><EmptyState title="No accounts match" description="Try another role, or show deactivated accounts." actionLabel={roleFilter ? 'Clear filter' : 'Create account'} action={roleFilter ? () => setRoleFilter('') : () => setIsCreateOpen(true)} /></td></tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.7 }}>
+                  <tr key={u.id} style={{ opacity: u.is_active ? 1 : 0.65 }}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
                         <div className="avatar-cell">{getInitials(u.full_name)}</div>
-                        <code style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{u.username}</code>
+                        <div className="cell-name"><strong>{u.full_name}</strong><span><code>{u.username}</code></span></div>
                       </div>
                     </td>
-                    <td><strong style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{u.full_name}</strong></td>
-                    <td>{getRoleBadge(u.role)}</td>
+                    <td>{ROLE_LABEL[u.role] || u.role}</td>
                     <td>
                       {u.role === 'BHW' ? (
-                        u.zone_ids && u.zone_ids.length > 0 ? u.zone_ids.map((zId) => <span key={zId} className="badge badge-teal" style={{ marginRight: '4px' }}>Purok {zId}</span>) : <span style={{ color: 'var(--faint)' }}>—</span>
-                      ) : <span style={{ color: 'var(--faint)' }}>All puroks</span>}
+                        u.zone_ids && u.zone_ids.length > 0
+                          ? <div className="flags">{u.zone_ids.map((zId) => <span key={zId} className="badge badge-teal">Purok {zId}</span>)}</div>
+                          : <span className="badge badge-amber">None assigned</span>
+                      ) : <span className="faint">{u.role === 'MIDWIFE' ? 'All puroks' : 'Not applicable'}</span>}
                     </td>
-                    <td>{u.is_active ? <span className="badge badge-emerald">Active</span> : <span className="badge badge-slate">Deactivated</span>}</td>
-                    <td><span style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>{u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Never signed in'}</span></td>
-                    <td style={{ textAlign: 'right' }}><Button variant="secondary" onClick={() => setEditingUser({ ...u, password: '' })} iconLeft={<Pencil className="h-4 w-4" />}>Edit</Button></td>
+                    <td>{u.is_active ? <span className="badge badge-positive badge-dot">Active</span> : <span className="badge badge-slate badge-dot">Deactivated</span>}</td>
+                    <td className="muted">{u.last_login_at ? new Date(u.last_login_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Never'}</td>
+                    <td style={{ textAlign: 'right' }}><Button variant="ghost" size="sm" onClick={() => setEditingUser({ ...u, password: '' })} iconLeft={<Pencil className="h-3.5 w-3.5" />}>Edit</Button></td>
                   </tr>
                 ))
               )}
@@ -232,33 +240,32 @@ export function UsersPage() {
           </table>
         </div>
         <Pagination page={page} pageSize={pageSize} total={total} unit="accounts" onPageChange={(p) => setPage(p)} />
+      </div>
 
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Create user account"
-        subtitle="Credentials are hashed with bcrypt before they are stored."
+        title="Create staff account"
+        subtitle="The password is stored as a bcrypt hash, never as plain text."
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="user-create-form" disabled={actionLoading}>{actionLoading ? 'Creating...' : 'Create account'}</Button>
+            <Button variant="primary" type="submit" form="user-create-form" disabled={actionLoading}>{actionLoading ? 'Creating…' : 'Create account'}</Button>
           </>
         }
       >
         <form id="user-create-form" onSubmit={handleCreateSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <FormGroup label="Username" required hint="3 to 50 characters: lowercase letters, numbers, dot, underscore, or hyphen"><Input type="text" placeholder="e.g. bhw3, midwife2" pattern="^[a-z0-9._-]{3,50}$" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} required /></FormGroup>
-            <FormGroup label="Password" required hint="Minimum 8 characters"><Input type="password" placeholder="Minimum 8 characters" minLength={8} value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required /></FormGroup>
-            <FormGroup label="Full name" required><Input type="text" placeholder="Staff member full name" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} required /></FormGroup>
-            <FormGroup label="System role" required>
-              <select className="form-select" value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} required>
-                <option value="BHW">BHW (barangay health worker)</option>
-                <option value="MIDWIFE">Midwife</option>
-                <option value="ADMIN">Administrator</option>
-              </select>
+            <FormGroup label="Full name" required><Input type="text" placeholder="e.g. Ana Reyes" value={newUser.full_name} onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })} required /></FormGroup>
+            <div className="form-grid form-grid-2">
+              <FormGroup label="Username" required hint="3–50 lowercase letters, numbers, dot, underscore or hyphen"><Input type="text" className="code" placeholder="e.g. bhw3" pattern="^[a-z0-9._-]{3,50}$" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} required /></FormGroup>
+              <FormGroup label="Password" required hint="At least 8 characters"><Input type="password" minLength={8} value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required autoComplete="new-password" /></FormGroup>
+            </div>
+            <FormGroup label="Role" required>
+              <RolePicker value={newUser.role} onChange={(role) => setNewUser({ ...newUser, role })} />
             </FormGroup>
             {newUser.role === 'BHW' && (
-              <FormGroup label="Assign purok zones" hint="A BHW can only see residents in the puroks assigned here.">
+              <FormGroup label="Assigned puroks" hint="A health worker sees only residents in these puroks.">
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {ZONES.map((z) => {
                     const checked = (newUser.zone_ids || []).includes(z.id);
@@ -274,30 +281,25 @@ export function UsersPage() {
       <Modal
         isOpen={!!editingUser}
         onClose={() => setEditingUser(null)}
-        title="Edit user account"
-        subtitle={`Managing ${editingUser?.username || ''}`}
+        title={editingUser ? editingUser.full_name : 'Edit account'}
+        subtitle={editingUser ? `Username ${editingUser.username}` : ''}
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="user-edit-form" disabled={actionLoading}>{actionLoading ? 'Saving...' : 'Save changes'}</Button>
+            <Button variant="primary" type="submit" form="user-edit-form" disabled={actionLoading}>{actionLoading ? 'Saving…' : 'Save changes'}</Button>
           </>
         }
       >
         {editingUser && (
           <form id="user-edit-form" onSubmit={handleEditSubmit}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <FormGroup label="Username" hint="The username is unique and cannot be changed."><Input type="text" value={editingUser.username} disabled /></FormGroup>
               <FormGroup label="Full name" required><Input type="text" value={editingUser.full_name} onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })} required /></FormGroup>
-              <FormGroup label="Reset password" hint="Leave blank to keep the current password."><Input type="password" placeholder="New password (min 8 characters)" minLength={8} value={editingUser.password || ''} onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })} /></FormGroup>
-              <FormGroup label="System role" required>
-                <select className="form-select" value={editingUser.role} onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })} required>
-                  <option value="BHW">BHW</option>
-                  <option value="MIDWIFE">Midwife</option>
-                  <option value="ADMIN">Administrator</option>
-                </select>
+              <FormGroup label="Reset password" hint="Leave blank to keep the current password."><Input type="password" placeholder="At least 8 characters" autoComplete="new-password" minLength={8} value={editingUser.password || ''} onChange={(e) => setEditingUser({ ...editingUser, password: e.target.value })} /></FormGroup>
+              <FormGroup label="Role" required>
+                <RolePicker value={editingUser.role} onChange={(role) => setEditingUser({ ...editingUser, role })} />
               </FormGroup>
               {editingUser.role === 'BHW' && (
-                <FormGroup label="Assigned purok zones">
+                <FormGroup label="Assigned puroks" hint="A health worker sees only residents in these puroks.">
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {ZONES.map((z) => {
                       const checked = (editingUser.zone_ids || []).includes(z.id);
@@ -306,16 +308,13 @@ export function UsersPage() {
                   </div>
                 </FormGroup>
               )}
-              <div className="panel">
-                <div className="panel-head">Account status</div>
-                <div className="panel-body">
-                  <label className="form-check" style={{ marginBottom: 0 }}>
-                    <input type="checkbox" checked={editingUser.is_active} onChange={(e) => setEditingUser({ ...editingUser, is_active: e.target.checked })} />
-                    <span className="form-check-label">{editingUser.is_active ? 'Account is active' : 'Account is deactivated'}</span>
-                  </label>
-                  {!editingUser.is_active && (<div style={{ fontSize: 'var(--fs-sm)', color: 'var(--pill-negative-ink)', marginTop: '0.5rem', lineHeight: 1.5 }}>Deactivating revokes all active login sessions for this account. The account record is kept for the audit trail.</div>)}
-                </div>
-              </div>
+              <label className={`toggle-card ${editingUser.is_active ? 'on' : ''}`}>
+                <input type="checkbox" checked={editingUser.is_active} onChange={(e) => setEditingUser({ ...editingUser, is_active: e.target.checked })} />
+                <span>
+                  <strong>{editingUser.is_active ? 'Account is active' : 'Account is deactivated'}</strong>
+                  <span>{editingUser.is_active ? 'Untick to stop this person from signing in.' : 'They are signed out everywhere and cannot sign in. The account record is kept for the audit trail.'}</span>
+                </span>
+              </label>
             </div>
           </form>
         )}

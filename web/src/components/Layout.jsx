@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Avatar } from './Avatar.jsx';
-import { Home, Users, FileText, Shield, LogOut, Menu, X } from 'lucide-react';
+import { Home, Users, FileText, Shield, LogOut, MapPin, ChevronDown } from 'lucide-react';
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -11,8 +10,8 @@ const getInitials = (name) => {
   return name.slice(0, 2).toUpperCase();
 };
 
-/** The health center's mark: a white cross on the brand hue. */
-function HealthMark({ size = 18 }) {
+/** The health center's mark: a cross. */
+export function HealthMark({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M10 4.5h4V10h5.5v4H14v5.5h-4V14H4.5v-4H10V4.5Z" fill="currentColor" />
@@ -22,112 +21,103 @@ function HealthMark({ size = 18 }) {
 
 const navItems = (role) => {
   if (role === 'BHW') return [
-    { to: '/households/new', label: 'Encode household', icon: Home },
-    { to: '/residents', label: 'Resident directory', icon: Users },
-    { to: '/masterlists', label: 'Program masterlists', icon: FileText },
+    { to: '/households/new', label: 'Encode household', short: 'Encode', icon: Home },
+    { to: '/residents', label: 'Residents', icon: Users },
+    { to: '/masterlists', label: 'Masterlists', icon: FileText },
   ];
   if (role === 'MIDWIFE') return [
-    { to: '/residents', label: 'Resident directory', icon: Users },
-    { to: '/masterlists', label: 'Program masterlists', icon: FileText },
+    { to: '/residents', label: 'Residents', icon: Users },
+    { to: '/masterlists', label: 'Masterlists', icon: FileText },
   ];
-  if (role === 'ADMIN') return [{ to: '/users', label: 'User accounts', icon: Shield }];
+  if (role === 'ADMIN') return [{ to: '/users', label: 'Staff accounts', short: 'Staff', icon: Shield }];
   return [];
 };
 
 const scopeLabel = (user) => {
-  if (!user) return '';
   if (user.role === 'BHW') {
     const zones = user.zone_ids || [];
     return zones.length > 0 ? `Purok ${zones.join(', ')}` : 'No purok assigned';
   }
-  if (user.role === 'MIDWIFE') return 'All puroks';
-  return 'System accounts';
+  if (user.role === 'MIDWIFE') return 'All puroks, read only';
+  return 'Accounts only';
 };
 
-const roleLabel = (role) => {
-  if (role === 'BHW') return 'Barangay Health Worker';
-  if (role === 'MIDWIFE') return 'Midwife';
-  if (role === 'ADMIN') return 'Administrator';
-  return role;
-};
+const roleLabel = (role) => ({ BHW: 'Barangay health worker', MIDWIFE: 'Midwife', ADMIN: 'Administrator' }[role] || role);
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const handleLogout = async () => { setMenuOpen(false); await logout(); navigate('/login'); };
 
-  const handleLogout = async () => { await logout(); navigate('/login'); };
+  /* New page: start at the top and close the account menu. */
+  useEffect(() => { window.scrollTo(0, 0); setMenuOpen(false); }, [pathname]);
 
-  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
-  useEffect(() => { document.body.style.overflow = sidebarOpen ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [sidebarOpen]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
+  }, [menuOpen]);
 
   if (!user) return null;
-
   const items = navItems(user.role);
 
   return (
-    <div className="app">
-      {sidebarOpen && (<div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />)}
+    <div className={`app ${items.length > 1 ? 'has-tabbar' : ''}`}>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <NavLink to="/" className="brand" aria-label="Barangay Tago Health Center, home">
+            <span className="brand-mark"><HealthMark size={18} /></span>
+            <span className="brand-text"><strong>Tago Health Center</strong><span>Naga City</span></span>
+          </NavLink>
 
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-top">
-          <div className="sidebar-brand">
-            <div className="brand-mark"><HealthMark size={17} /></div>
-            <div className="brand-text">
-              <strong>Barangay Tago</strong>
-              <span>Health Center</span>
+          {/* Desktop: tabs in the top bar. Phones: a bottom tab bar (same links). */}
+          <nav className="topnav" aria-label="Main">
+            {items.map(({ to, label, short, icon: Icon }) => (
+              <NavLink key={to} to={to} aria-label={label} className={({ isActive }) => `topnav-item ${isActive ? 'active' : ''}`}>
+                <Icon aria-hidden="true" />
+                <span className="nav-long">{label}</span>
+                <span className="nav-short">{short || label}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="topbar-right">
+            <span className="scope-pill" title="What this account can see"><MapPin />{scopeLabel(user)}</span>
+            <div className="account" ref={menuRef}>
+              <button type="button" className="user-chip" aria-label={`Account menu for ${user.full_name}`} aria-haspopup="true" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+                <span className="user-initials" aria-hidden="true">{getInitials(user.full_name)}</span>
+                <span className="user-text">
+                  <span className="user-name">{user.full_name}</span>
+                  <span className="user-role">{roleLabel(user.role)}</span>
+                </span>
+                <ChevronDown size={16} className="chev" aria-hidden="true" />
+              </button>
+              {menuOpen && (
+                <div className="account-menu" role="menu">
+                  <div className="account-who">
+                    <strong>{user.full_name}</strong>
+                    <span>{roleLabel(user.role)}</span>
+                    <span className="account-scope"><MapPin size={15} aria-hidden="true" />{scopeLabel(user)}</span>
+                  </div>
+                  <button type="button" role="menuitem" className="account-signout" onClick={handleLogout}>
+                    <LogOut size={18} aria-hidden="true" />Sign out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button>
         </div>
+      </header>
 
-        <nav className="sidebar-nav" aria-label="Main">
-          <div className="sidebar-section">
-            {items.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink key={item.to} to={item.to} className={({ isActive }) => `sidebar-item ${isActive ? 'active' : ''}`}>
-                  <Icon className="h-[17px] w-[17px] shrink-0" /><span>{item.label}</span>
-                </NavLink>
-              );
-            })}
-          </div>
-        </nav>
-
-        <div className="sidebar-bottom">
-          <button onClick={handleLogout} className="sidebar-item signout">
-            <LogOut className="h-[17px] w-[17px] shrink-0" /><span>Sign out</span>
-          </button>
-        </div>
-      </aside>
-
-      <div className="app-body">
-        <header className="header">
-          <div className="header-left">
-            <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} aria-label="Open menu"><Menu className="h-5 w-5" /></button>
-            <span className="header-scope">
-              <span className="header-scope-label">Scope</span>
-              <strong>{scopeLabel(user)}</strong>
-            </span>
-          </div>
-          <div className="header-right">
-            <div className="header-divider" aria-hidden="true" />
-            <div className="user-chip">
-              <Avatar initials={getInitials(user.full_name)} role={user.role} size="sm" status="online" />
-              <div className="user-info">
-                <div className="user-name">{user.full_name}</div>
-                <div className="user-role">{roleLabel(user.role)}</div>
-              </div>
-            </div>
-            <button className="logout-btn" onClick={handleLogout} title="Sign out" aria-label="Sign out"><LogOut className="h-[18px] w-[18px]" /></button>
-          </div>
-        </header>
-
-        <main className="main">
-          <div className="page"><Outlet /></div>
-        </main>
-      </div>
+      <main className="main">
+        <div className="page"><Outlet /></div>
+      </main>
     </div>
   );
 }

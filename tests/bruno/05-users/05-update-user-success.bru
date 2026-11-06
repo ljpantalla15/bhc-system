@@ -1,0 +1,41 @@
+meta {
+  name: Update User - Success
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/api/users/3
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "full_name": "Demo BHW One Updated"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq 3
+  res.body.full_name: eq Demo BHW One Updated
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("full_name updated successfully", function() {
+    expect(res.body.full_name).to.equal("Demo BHW One Updated");
+  });
+}
+

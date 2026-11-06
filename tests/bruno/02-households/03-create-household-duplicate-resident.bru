@@ -1,0 +1,53 @@
+meta {
+  name: Create Household - Duplicate Resident
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/households
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "household_no": "202611-TAGO-90003",
+    "date_of_visit": "2026-11-01",
+    "zone_id": 1,
+    "members": [
+      {
+        "last_name": "Reyes",
+        "first_name": "Antonio",
+        "relation_to_head": "HEAD",
+        "birth_date": "1958-07-16",
+        "sex": "M",
+        "civil_status_code": "M",
+        "education_code": "HG"
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.error.code: eq duplicate_resident
+}
+
+tests {
+  test("status code is 400 Bad Request", function() {
+    expect(res.getStatus()).to.equal(400);
+  });
+  test("error code is duplicate_resident", function() {
+    expect(res.body.error.code).to.equal("duplicate_resident");
+  });
+}
+

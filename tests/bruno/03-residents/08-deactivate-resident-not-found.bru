@@ -1,0 +1,30 @@
+meta {
+  name: Deactivate Resident - Not Found
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/residents/999999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.error.code: eq not_found
+}
+
+tests {
+  test("status code is 404 Not Found", function() {
+    expect(res.getStatus()).to.equal(404);
+  });
+  test("error code is not_found", function() {
+    expect(res.body.error.code).to.equal("not_found");
+  });
+}
+

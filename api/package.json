@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "load-test": "node ../tests/load/runner.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

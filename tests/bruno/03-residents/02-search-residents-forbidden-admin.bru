@@ -1,0 +1,30 @@
+meta {
+  name: Search Residents - Admin Forbidden
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/residents
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden for Admin", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}
+
