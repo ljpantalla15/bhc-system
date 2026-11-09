@@ -41,6 +41,14 @@ Prompt: *"Implement POST /api/households and GET /api/households/{id}. Create th
 ## Step 5: Residents
 Prompt: *"Implement GET /api/residents (search with q, zone_id, household_id, age_risk_group, include_inactive, pagination), PATCH /api/residents/{id}, and DELETE /api/residents/{id} (deactivate with optional reason). After a PATCH and a DELETE, verify rows appear in change_log with the right user."*
 
+## Step 5b: Archive and restore residents (added after Step 5)
+Prompt: *"Add the archive. GET /api/residents accepts status=active|archived|all (include_inactive=true stays as the older spelling of all); archived is newest deactivation first and each resident carries deactivated_at, deactivated_by_name and deactivation_reason. Add POST /api/residents/{id}/reactivate for the BHW (own zones): 404 outside the zones, 400 when already active or when restoring clashes with an active record, and a REACTIVATE row in change_log. No schema change is needed (the sync_deactivation trigger already clears the stamps). Tests: archived list, zone scoping, Midwife read, Admin 403, restore success with change_log, restore 400 and 404 and 403."*
+Done when: `node --test test/archive.test.js` passes and the Residents page has an Archive view with a Restore action for BHWs.
+
+## Step 5c: Change history on the resident record (added after Step 5b)
+Prompt: *"Show who changed a resident and when, on the record itself (no separate page). Every resident carries updated_at and updated_by_name (the table shows a Last updated column). Add GET /api/residents/{id}/history for the BHW (own zones, 404 elsewhere) and the Midwife: who, when and the NAMES of the changed fields, newest first and paged, never old or new values; an archived resident keeps their history. A PATCH that changes only the medical conditions must still stamp the resident. Tests: edit appears in the history, conditions-only change, list carries updated_by_name, archived history, 404 other zone, 403 Admin, 401, 404 unknown, 400 bad id, paging."*
+Done when: `node --test test/resident-history.test.js` passes, the Residents table has a Last updated column, and the resident profile has a Change history section.
+
 ## Step 6: Masterlists
 Prompt: *"Implement GET /api/masterlists using the masterlist() SQL function. BHW: own zones only (403 for an unassigned zone_id). Midwife: all zones. Test all four categories against the demo data: SENIOR_CITIZEN, UNDER_FIVE, PREGNANT, PWD."*
 
@@ -61,7 +69,7 @@ Run by hand: `sh scripts/gen-cert.sh`. Prompt: *"Make `docker compose --profile 
 Prompt: *"Add scripts/backup.sh (pg_dump from the db container into backups/ with a timestamp) and scripts/restore.sh. Test a full restore into a fresh database and record the result in docs/BACKUP_RECORD.md. Review the code against the security checklist in docs/CONVENTIONS.md and list any gaps."*
 
 ## Step 11: API tests
-Prompt: *"Create a Bruno collection in tests/bruno/ covering all 12 endpoints from docs/openapi.yaml, each with at least one success and one failure case, using environment variables for the base URL and token."*
+Prompt: *"Create a Bruno collection in tests/bruno/ covering all 14 endpoints from docs/openapi.yaml, each with at least one success and one failure case, using environment variables for the base URL and token."*
 
 ## Step 12: Load testing and architectural comparison
 Prompt: *"Write a load test in tests/load/ (k6, Locust, or JMeter) for login then GET /api/residents and GET /api/masterlists with increasing virtual users. Run it and summarize response times and error rates in docs/LOAD_TEST.md. Then write the architectural comparison section as the proposal describes."*

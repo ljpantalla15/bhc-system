@@ -1,4 +1,5 @@
 import React from 'react';
+import { SkeletonNum } from './Skeleton.jsx';
 import { Check } from 'lucide-react';
 
 export function Card({ children, className = '', style, padding = true, header, footer, ...rest }) {
@@ -33,7 +34,7 @@ export function KpiStrip({ items, className = '', style }) {
 export function PurokStrip({ zones, counts, assignedZones = [], loading = false, selected = '', onSelect }) {
   const visible = assignedZones.length ? zones.filter((z) => assignedZones.includes(z.id)) : zones;
   const total = visible.reduce((sum, z) => sum + (counts[z.id] || 0), 0);
-  const show = (n) => (loading || n === undefined ? '–' : n);
+  const show = (n) => (loading || n === undefined ? <SkeletonNum /> : n);
   /* One assigned purok: "All my puroks" would repeat it, so show just that purok. */
   const single = assignedZones.length === 1;
 
@@ -42,7 +43,7 @@ export function PurokStrip({ zones, counts, assignedZones = [], loading = false,
       {!single && (
         <button type="button" className="purok-btn" aria-pressed={!selected} onClick={() => onSelect('')}>
           <span className="p-name">{assignedZones.length ? 'All my puroks' : 'All puroks'}</span>
-          <span className="p-count">{loading ? '–' : total}</span>
+          <span className="p-count">{loading ? <SkeletonNum /> : total}</span>
           <span className="p-note">residents</span>
         </button>
       )}

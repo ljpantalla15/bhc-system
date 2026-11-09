@@ -1,0 +1,33 @@
+meta {
+  name: Resident History - Success
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/residents/1/history
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("entries list who, when and field names only", function() {
+    res.body.items.forEach(function(i) {
+      expect(i).to.have.property("changed_at");
+      expect(i).to.have.property("changed_fields");
+      expect(i).to.not.have.property("old_data");
+      expect(i).to.not.have.property("new_data");
+    });
+  });
+}

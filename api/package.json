@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test test/**/*.test.js",
+    "test": "node --test --test-concurrency=1 test/**/*.test.js",
     "load-test": "node ../tests/load/runner.js"
   },
   "dependencies": {

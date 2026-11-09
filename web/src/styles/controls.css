@@ -1,11 +1,12 @@
 /* --------------------------------------------------------------- buttons --- */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: var(--control-height); padding: 0.5rem 1rem; border-radius: var(--r-control); border: 1px solid transparent; font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; white-space: nowrap; transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: var(--control-height); padding: 0.5rem 1rem; border-radius: var(--r-control); border: 1px solid transparent; font-weight: 700; font-size: var(--fs-sm); line-height: 1.2; white-space: nowrap; transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn svg { flex-shrink: 0; }
 .btn-primary { background: var(--ink); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--ink-strong); }
 .btn-secondary, .btn-outline { background: var(--surface); border-color: var(--control); color: var(--text-heading); }
-.btn-secondary:hover:not(:disabled), .btn-outline:hover:not(:disabled) { border-color: var(--ink); background: var(--raised); }
+.btn-secondary:hover:not(:disabled), .btn-outline:hover:not(:disabled) { border-color: var(--ink); background: var(--dusk-50); }
 .btn-ghost { background: transparent; color: var(--ink); }
 .btn-ghost:hover:not(:disabled) { background: var(--ink-soft); }
 .btn-danger { background: var(--negative); color: #fff; }
@@ -66,7 +67,7 @@
 .seg-btn.on, .seg-btn.on-f, .seg-btn.on-m { background: var(--surface); color: var(--ink-strong); box-shadow: 0 1px 2px rgb(15 36 54 / 0.15); }
 
 /* Toggle chips (conditions, purok assignment) */
-.condition-chip { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 36px; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--control); background: var(--surface); font-size: var(--fs-sm); font-weight: 600; color: var(--text); cursor: pointer; user-select: none; transition: background var(--t-fast), border-color var(--t-fast); }
+.condition-chip { font-family: inherit; display: inline-flex; align-items: center; gap: 0.4rem; min-height: 36px; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--control); background: var(--surface); font-size: var(--fs-sm); font-weight: 600; color: var(--text); cursor: pointer; user-select: none; transition: background var(--t-fast), border-color var(--t-fast); }
 .condition-chip:hover { border-color: var(--ink); }
 .condition-chip.active { background: var(--ink); border-color: var(--ink); color: #fff; }
 .condition-chip .chip-mark { display: inline-flex; color: var(--faint); }
@@ -75,7 +76,7 @@
 
 /* Toggle cards: a yes/no question shown as a card */
 .toggle-card { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.8rem 0.95rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast); }
-.toggle-card:hover { border-color: var(--ink-line); }
+.toggle-card:hover { border-color: var(--dusk-300); }
 .toggle-card input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ink); flex-shrink: 0; }
 .toggle-card strong { display: block; font-size: var(--fs-sm); color: var(--text-heading); }
 .toggle-card span { display: block; font-size: var(--fs-xs); color: var(--muted); line-height: 1.4; }
@@ -87,7 +88,7 @@
 /* Radio cards (role choice) */
 .choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
 .choice-card { display: flex; flex-direction: column; gap: 0.2rem; text-align: left; padding: 0.8rem 0.9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); transition: border-color var(--t-fast), box-shadow var(--t-fast); }
-.choice-card:hover { border-color: var(--ink-line); }
+.choice-card:hover { border-color: var(--dusk-300); }
 .choice-card strong { font-size: var(--fs-sm); color: var(--text-heading); }
 .choice-card span { font-size: var(--fs-xs); color: var(--muted); line-height: 1.4; }
 .choice-card[aria-checked='true'] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); background: var(--raised); }
@@ -154,10 +155,16 @@
 .empty-state { text-align: center; padding: 3rem 1rem; }
 .empty-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; color: var(--text-heading); }
 .empty-desc { max-width: 46ch; margin: 0.3rem auto 1rem; font-size: var(--fs-sm); color: var(--muted); }
-.skeleton { background: var(--rule); border-radius: 6px; animation: pulse 1.4s ease-in-out infinite; }
+.skeleton { background: linear-gradient(90deg, var(--dusk-100) 0%, var(--dusk-50) 45%, var(--dusk-100) 90%); background-size: 200% 100%; border-radius: 6px; animation: shimmer 1.5s ease infinite; }
 .skeleton-text { height: 0.9rem; }
-.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; }
+.skeleton-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; }
 .skeleton-row { height: 48px; margin: 0.4rem 1rem; }
+.skeleton-line { display: flex; align-items: center; gap: 0.85rem; min-height: 48px; padding: 0.4rem 1rem; animation: fadeIn 0.3s ease backwards; }
+.skeleton-line .skeleton-text { flex: 1; }
+.skeleton-line .skeleton-text:nth-child(2) { max-width: 38%; }
+.skeleton-line .skeleton-text:nth-child(3) { max-width: 18%; }
+.skeleton-num { display: inline-block; width: 1.6em; height: 0.85em; vertical-align: -0.05em; border-radius: 4px; }
+@media (max-width: 720px) { .skeleton-line .skeleton-text:nth-child(n+3) { display: none; } .skeleton-line .skeleton-text:nth-child(2) { max-width: 50%; } }
 
 /* ------------------------------------------------------------ pagination --- */
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem 1.25rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid var(--rule); background: var(--raised); font-size: var(--fs-sm); color: var(--muted); }

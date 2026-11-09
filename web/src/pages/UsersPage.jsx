@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { Alert } from '../components/Alert.jsx';
 import { Modal } from '../components/Modal.jsx';
 import { Pagination } from '../components/Pagination.jsx';
-import { SkeletonList } from '../components/Skeleton.jsx';
+import { SkeletonList, SkeletonNum } from '../components/Skeleton.jsx';
 import { EmptyState } from '../components/EmptyState.jsx';
 import { Button } from '../components/Button.jsx';
 import { Input, FormGroup } from '../components/Form.jsx';
@@ -173,7 +173,9 @@ export function UsersPage() {
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const openCreate = (zone) => { setNewUser(emptyNew(zone)); setCreateTried(false); setIsCreateOpen(true); };
-  const openEdit = (u) => { setEditingUser({ ...u, zone_ids: u.zone_ids || [], password: '' }); setShowPwReset(false); };
+  const [offConfirm, setOffConfirm] = useState(false);
+  const [editError, setEditError] = useState('');
+  const openEdit = (u) => { setEditingUser({ ...u, was_active: u.is_active, zone_ids: u.zone_ids || [], password: '' }); setShowPwReset(false); setOffConfirm(false); setEditError(''); };
 
   /* ---------- create */
   const createErrors = {
@@ -210,9 +212,13 @@ export function UsersPage() {
     zones: editingUser.role === 'BHW' && editingUser.zone_ids.length === 0 && 'Pick at least one purok.',
   } : {};
 
+  const willDeactivate = !!editingUser && !isSelf && editingUser.was_active && !editingUser.is_active;
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (Object.values(editErrors).some(Boolean)) return;
+    if (willDeactivate && !offConfirm) { setOffConfirm(true); return; }
+    setEditError('');
     setActionLoading(true);
     try {
       const payload = { full_name: editingUser.full_name.trim() };
@@ -224,7 +230,7 @@ export function UsersPage() {
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
-      showToast({ type: 'danger', message: err.message || 'The account could not be updated.' });
+      setEditError(err.message || 'The account could not be updated.');
     } finally { setActionLoading(false); }
   };
 
@@ -276,7 +282,7 @@ export function UsersPage() {
               <button key={r.code || 'all'} type="button" className="staff-stat" aria-pressed={roleFilter === r.code} onClick={() => { setRoleFilter(r.code); setPage(1); }}>
                 <span className="hide-sm">{r.label}</span>
                 <span className="show-sm">{r.short}</span>
-                <strong>{loading ? '–' : r.n}</strong>
+                <strong>{loading || r.n === undefined ? <SkeletonNum /> : r.n}</strong>
               </button>
             ))}
           </div>
@@ -428,12 +434,13 @@ export function UsersPage() {
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setEditingUser(null)}>Cancel</Button>
-            <Button variant="primary" type="submit" form="user-edit-form" loading={actionLoading}>{actionLoading ? 'Saving…' : 'Save changes'}</Button>
+            <Button variant="primary" type="submit" form="user-edit-form" loading={actionLoading}>{actionLoading ? 'Saving…' : willDeactivate ? (offConfirm ? 'Yes, deactivate and save' : 'Save and deactivate') : 'Save changes'}</Button>
           </>
         }
       >
         {editingUser && (
           <form id="user-edit-form" className="sheet-body" onSubmit={handleEditSubmit} noValidate>
+            <Alert type="danger" message={editError} onClose={() => setEditError('')} />
             <section className="sheet-section">
               <h3>Details</h3>
               <FormGroup label="Full name" required error={editErrors.full_name}>
@@ -480,9 +487,17 @@ export function UsersPage() {
                       : 'Reactivating lets them sign in again with their password.'}</span>
                   </div>
                   <Button variant={editingUser.is_active ? 'danger-outline' : 'secondary'} size="sm" type="button"
-                    onClick={() => setEditingUser((p) => ({ ...p, is_active: !p.is_active }))}>
+                    onClick={() => { setOffConfirm(false); setEditingUser((p) => ({ ...p, is_active: !p.is_active })); }}>
                     {editingUser.is_active ? 'Deactivate' : 'Reactivate'}
                   </Button>
+                </div>
+              )}
+              {willDeactivate && (
+                <div className="field-error" role="alert" style={{ marginTop: '0.6rem' }}>
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {offConfirm
+                    ? `Confirm: ${editingUser.full_name} will be signed out and unable to sign in. Press "Yes, deactivate and save" to continue.`
+                    : `${editingUser.full_name} will be deactivated when you save.`}
                 </div>
               )}
             </section>

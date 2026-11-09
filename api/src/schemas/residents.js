@@ -175,6 +175,13 @@ export const residentSearchQuerySchema = z.object({
     .preprocess((val) => val === 'true' || val === true, z.boolean())
     .default(false),
   /**
+   * Which residents to list.
+   *  - 'active'   : residents that are in use (default).
+   *  - 'archived' : only deactivated residents, newest first.
+   *  - 'all'      : both. `include_inactive=true` is the older spelling of this.
+   */
+  status: z.enum(['active', 'archived', 'all']).optional(),
+  /**
    * How the list is ordered and paged.
    *  - 'name'      : one row per resident, ordered by last name (default).
    *  - 'household' : members of a household are kept together, the page is

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
-const AUTO_DISMISS = 2500;
+const AUTO_DISMISS = 5000; // success/info; errors and warnings stay until dismissed
+const durationFor = (type) => (type === 'danger' || type === 'warning' ? 0 : AUTO_DISMISS);
 const MAX_TOASTS = 3;
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const add = useCallback((type, message, duration = AUTO_DISMISS) => {
+  const add = useCallback((type, message, duration) => {
     if (!message) return null;
+    if (duration == null) duration = durationFor(type);
     setToasts((prev) => {
       if (prev.some((t) => t.type === type && t.message === message)) return prev;
       const next = [...prev, { id: Date.now() + Math.random(), type, message, duration }];
@@ -39,13 +41,13 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => {
           const Icon = iconMap[t.type] || Info;
           return (
-            <div key={t.id} className={`toast toast-${t.type}`} role="alert" aria-live="polite">
+            <div key={t.id} className={`toast toast-${t.type}`} role={t.type === 'danger' ? 'alert' : 'status'}>
               <span className="toast-icon">
-                <Icon className="h-[18px] w-[18px]" />
+                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
               </span>
               <div className="toast-body">{t.message}</div>
               <button type="button" className="toast-dismiss" onClick={() => remove(t.id)} aria-label="Dismiss">
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           );
@@ -55,6 +57,6 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function showToast({ type = 'info', message, duration = AUTO_DISMISS } = {}) {
+export function showToast({ type = 'info', message, duration } = {}) {
   window.dispatchEvent(new CustomEvent('bhc_toast', { detail: { type, message, duration } }));
 }

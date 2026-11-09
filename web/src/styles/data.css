@@ -23,7 +23,8 @@
 
 /* ------------------------------------------------- purok filter strip --- */
 .purok-filter { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
-.purok-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; min-width: 0; padding: 0.75rem 0.9rem; text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast); }
+.purok-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; min-width: 0; padding: 0.75rem 0.9rem; text-align: left; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast), transform var(--t-fast); }
+.purok-btn:hover:not(:disabled) { transform: translateY(-1px); }
 .purok-btn:hover:not(:disabled) { border-color: var(--ink-line); }
 .purok-btn .p-name { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .purok-btn .p-count { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; color: var(--text-heading); }
@@ -45,10 +46,17 @@
 .table-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); box-shadow: var(--shadow-card); overflow: hidden; }
 .table-wrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: var(--fs-sm); }
-.table th { position: sticky; top: 0; z-index: 1; padding: 0.7rem 1rem; text-align: left; font-size: var(--fs-xs); font-weight: 700; color: var(--muted); background: var(--raised); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.table th { position: sticky; top: 0; z-index: 1; padding: 0.7rem 1rem; text-align: left; font-size: var(--fs-xs); font-weight: 700; color: var(--muted); background: var(--dusk-50); border-bottom: 1px solid var(--border); white-space: nowrap; }
 .table td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--rule); vertical-align: middle; white-space: nowrap; }
 .table tbody tr:last-child td { border-bottom: 0; }
-.table tbody tr:hover td { background: #f9fbfc; }
+.table tbody tr { animation: rowIn 0.28s var(--ease) backwards; }
+.table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.table tbody tr:nth-child(n+6) { animation-delay: 150ms; }
+@media print { .table tbody tr { animation: none; } }
+.table tbody tr:hover td { background: var(--dusk-50); }
 .table code { color: var(--text-heading); }
 .table .row-actions { display: flex; justify-content: flex-end; gap: 0.15rem; }
 .cell-name strong { display: block; font-weight: 700; color: var(--text-heading); font-size: var(--fs-base); }
@@ -78,7 +86,7 @@
 .table .col-actions { width: 1%; }
 .table .row-click { cursor: pointer; }
 .table .row-click td { padding-top: 0.85rem; padding-bottom: 0.85rem; }
-.table .row-click:hover td { background: var(--navy-50); }
+.table .row-click:hover td { background: var(--dusk-100); }
 .cell-age strong { display: block; font-weight: 700; color: var(--text-heading); font-size: var(--fs-sm); }
 .cell-age span { display: block; font-size: var(--fs-xs); color: var(--muted); }
 .cell-notes { white-space: normal !important; }
@@ -189,3 +197,15 @@
   .info-row dt, .info-row dd { font-size: var(--fs-base); }
   .sheet-table-wrap { border: 0; margin: 0 -1.1rem; border-radius: 0; border-top: 1px solid var(--rule); }
 }
+
+/* --------------------------------------------------- last updated, history --- */
+.cell-updated strong { display: block; font-weight: 600; color: var(--text-heading); white-space: nowrap; }
+.cell-updated span { display: block; font-size: var(--fs-xs); color: var(--muted); }
+.history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.history-list li { display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); gap: 0.25rem 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); font-size: var(--fs-sm); animation: rowIn 0.28s var(--ease) backwards; }
+.history-list li:last-child { border-bottom: 0; }
+.history-when { color: var(--muted); }
+.history-what strong { color: var(--text-heading); }
+.history-skeleton { display: flex; flex-direction: column; gap: 0.6rem; }
+.history-more { margin-top: 0.5rem; font-size: var(--fs-xs); }
+@media (max-width: 720px) { .history-list li { grid-template-columns: 1fr; } }

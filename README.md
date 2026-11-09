@@ -57,6 +57,7 @@ graph TD
    - Referential integrity, unique constraints, and check constraints enforce demographic validation.
    - High-performance stored procedure `masterlist(category)` computes real-time maternal, pediatric, senior, and PWD masterlists.
    - Soft-deactivation triggers prevent permanent record loss; all modifications are logged to `change_log`.
+   - Deactivated residents are kept in an **Archive** (Residents page, Archived tab): newest first, with who archived them, when and why. Health workers can restore a resident in their own puroks; the restore is logged as `REACTIVATE`.
 
 ---
 
@@ -67,7 +68,7 @@ The database comes pre-seeded with synthetic test accounts demonstrating the rol
 | Username | Role | Purok (Zone) Scope | Permissions / Capabilities |
 | :--- | :--- | :--- | :--- |
 | `admin1` | **ADMIN** | System-wide | Manages user accounts and zone assignments. **Strictly barred from accessing resident health profiles or masterlists.** |
-| `midwife1` | **MIDWIFE** | All Puroks (1, 2, 3) | **Read-Only Oversight.** Views resident directory and generates masterlists across all zones. Cannot create, edit, or deactivate records. |
+| `midwife1` | **MIDWIFE** | All Puroks (1, 2, 3) | **Read-Only Oversight.** Views resident directory and generates masterlists across all zones, and can read the archive. Sees who last changed each record and its change history. Cannot create, edit, deactivate, or restore records. |
 | `bhw1` | **BHW** | Purok 1 | Encodes households, updates profiles, and views masterlists **strictly in Purok 1**. Records in other zones return `404 Not Found`. |
 | `bhw2` | **BHW** | Puroks 2 & 3 | Encodes households, updates profiles, and views masterlists in **Purok 2 and Purok 3**. |
 
@@ -148,15 +149,16 @@ npm run dev        # Runs Vite on http://localhost:5173
 The repository includes extensive automated test suites ensuring full compliance with `docs/openapi.yaml` and the course security rules.
 
 ### 5.1 API Test Suite (Node.js Native Test Runner)
-Covers all 12 endpoints, role-based zoning, error mapping, and transaction integrity:
+Covers all 14 endpoints, role-based zoning, error mapping, and transaction integrity:
 
 ```bash
 npm --prefix api test
 ```
-*Current status: **All 78 tests passing** across 9 test files, including `test/password.test.js` for the change-password endpoint.*
+The test files share one database, so `npm test` runs them one file at a time (`--test-concurrency=1`) to keep the household counts stable.
+*Current status: **All 93 tests passing** across 11 test files, including `test/password.test.js` for the change-password endpoint and `test/archive.test.js` for the resident archive and restore, and `test/resident-history.test.js` for the per-resident change history.*
 
 ### 5.2 Bruno API Collection (`tests/bruno/`)
-A complete Bruno collection covering all 12 endpoints with success (200/201) and error cases (400, 401, 403, 404):
+A complete Bruno collection covering all 14 endpoints with success (200/201) and error cases (400, 401, 403, 404):
 
 ```bash
 # Run via Bruno CLI against the local environment:

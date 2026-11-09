@@ -16,9 +16,9 @@
      phone screens. Body text is 7:1 or better (WCAG AAA) for older eyes. */
   --ink: #1e3d59;
   --ink-strong: #1e3d59;
-  --ink-soft: #e6edf3;
+  --ink-soft: var(--dusk-100);
   --ink-line: #b9c7d4;
-  --ground: #f1f3f5;
+  --ground: #eef3f8;
   --surface: #fdfdfe;
   --raised: #f5f7f9;
   --border: #d5dde4;
@@ -37,6 +37,15 @@
   --navy-200: #c3d0dc;
   --navy-100: #e6edf3;
   --navy-50: #f2f5f8;
+
+  /* Dusk blue scale: the lighter, softer partner to navy. Use for
+     highlights, hover fills, selected rows, and calm backgrounds. */
+  --dusk-700: #3f6288;
+  --dusk-500: #6f93b8;      /* dusk blue */
+  --dusk-300: #a9c1d9;
+  --dusk-200: #c9d9e8;
+  --dusk-100: #e1ebf5;
+  --dusk-50: #f0f5fa;
 
   /* Programmes: stripe colour, text colour, background tint */
   --senior: #b98320;        /* sun ochre */
@@ -91,7 +100,7 @@
   --slate-600: #46535f;
   --slate-700: #2f3c48;
 
-  --font-ui: 'Google Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-display: var(--font-ui);
   --font-code: var(--font-ui);
 
@@ -115,7 +124,7 @@
   --shadow-card: 0 1px 2px rgb(15 36 54 / 0.06);
   --shadow-float: 0 18px 40px -14px rgb(15 36 54 / 0.35);
   --ring: 0 0 0 3px rgb(30 61 89 / 0.28);
-  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease: ease;
   --t-fast: 140ms var(--ease);
 
   --max-width: 1280px;
@@ -151,6 +160,8 @@ td.num, th.num { text-align: right; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: 0.55; } }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes rowIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* Phones: bigger text and 44px+ touch targets for older eyes and thumbs */
 @media (max-width: 720px) {

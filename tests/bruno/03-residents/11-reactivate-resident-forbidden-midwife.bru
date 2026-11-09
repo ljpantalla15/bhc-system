@@ -1,0 +1,29 @@
+meta {
+  name: Reactivate Resident - Forbidden (Midwife)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/residents/1/reactivate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{midwifeToken}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.error.code: eq forbidden
+}
+
+tests {
+  test("status code is 403 Forbidden", function() {
+    expect(res.getStatus()).to.equal(403);
+  });
+  test("error code is forbidden", function() {
+    expect(res.body.error.code).to.equal("forbidden");
+  });
+}

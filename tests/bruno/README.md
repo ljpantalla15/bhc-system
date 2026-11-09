@@ -34,7 +34,12 @@ tests/bruno/
 │   ├── 06-update-resident-not-found.bru # PATCH /api/residents/{id} (404)
 │   ├── 07-deactivate-resident-forbidden-midwife.bru # DELETE /api/residents/{id} (403)
 │   ├── 08-deactivate-resident-not-found.bru # DELETE /api/residents/{id} (404)
-│   └── 09-deactivate-resident-success.bru # DELETE /api/residents/{id} (200)
+│   ├── 09-deactivate-resident-success.bru # DELETE /api/residents/{id} (200)
+│   ├── 10-search-archived-residents-success.bru # GET /api/residents?status=archived (200)
+│   ├── 11-reactivate-resident-forbidden-midwife.bru # POST /api/residents/{id}/reactivate (403)
+│   ├── 12-reactivate-resident-not-found.bru # POST /api/residents/{id}/reactivate (404)
+│   ├── 13-resident-history-success.bru # GET /api/residents/{id}/history (200)
+│   └── 14-resident-history-not-found.bru # GET /api/residents/{id}/history (404)
 ├── 04-masterlists/
 │   ├── 01-masterlist-senior-citizen-success.bru # GET /api/masterlists (200)
 │   ├── 02-masterlist-under-five-success.bru # GET /api/masterlists (200)

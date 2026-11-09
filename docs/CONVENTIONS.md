@@ -48,6 +48,9 @@ async function withTransaction(user, fn) {
 - BHW zones come from `user_zone_assignments`. Load them once per request.
 - BHW asks for a record outside their zones: **404**. BHW asks for a zone they do not have: **403**.
 - Midwife passes `NULL` zone ids to `masterlist()`; a BHW passes their zone id array.
+- Resident change history (`GET /api/residents/{id}/history`): same access as reading the resident (BHW own zones, outside them 404;
+  Midwife all zones; Admin 403). Return who, when and the field **names** only, never `old_data` / `new_data`. Join `users` for the
+  name; never forward row values. Every resident also carries `updated_at` and `updated_by_name` for the "Last updated" column.
 
 ## Error shape and status codes (200, 201, 400, 401, 403, 404, 500)
 ```json
@@ -76,6 +79,9 @@ Map by constraint name (`err.constraint`), never by message text, and never forw
 - Create household + members + medical conditions in ONE transaction.
 - Replace medical conditions on update by deleting that resident's rows and inserting the new set.
 - Deactivate: `UPDATE ... SET is_active = false` (the trigger stamps who and when).
+- Restore (reactivate): `UPDATE ... SET is_active = true` (the trigger clears the stamps and the log row is `REACTIVATE`).
+  The archive is `GET /api/residents?status=archived`, newest deactivation first, same zone scoping as the active list.
+  A restore that clashes with an active record (duplicate, second head, PhilHealth ID) maps through the constraint table to 400.
 - Age and age risk group are calculated by the view. Do not store or accept them.
 
 ## Frontend
@@ -95,6 +101,6 @@ Map by constraint name (`err.constraint`), never by message text, and never forw
   - Barangay Health Worker (`BHW`) is scoped exclusively to assigned puroks; unauthorized zone requests return 403, and unassigned records return 404 (concealing existence).
   - Midwife (`MIDWIFE`) has read-only access across all zones; cannot create, modify, or deactivate records.
 - **Data Protection**: Parameterized SQL via `pg` (no string-built queries), no raw database errors or stack traces leaked to clients (`errorHandler.js`), never return password hashes.
-- **Audit Logging**: Every transaction sets `app.current_user_id` inside `withTransaction`, logging inserts, updates, and deactivations to `change_log`.
+- **Audit Logging**: Every transaction sets `app.current_user_id` inside `withTransaction`, logging inserts, updates, deactivations, and reactivations (restores) to `change_log`. A resident's log is readable through `GET /api/residents/{id}/history` (names of changed fields only).
 - **Privacy & Statutory Compliance**: Synthetic data only; full statutory review in `docs/PRIVACY.md`.
 - **Operational Recovery**: Automated backup scripts (`scripts/backup.sh`, `scripts/backup.ps1`) and validated restore procedures (`docs/BACKUP_RECORD.md`).

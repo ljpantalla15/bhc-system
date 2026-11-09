@@ -42,7 +42,7 @@ const scopeLabel = (user) => {
     return zones.length > 0 ? `Purok ${zones.join(', ')}` : 'No purok assigned';
   }
   if (user.role === 'MIDWIFE') return 'All puroks, read only';
-  return 'Accounts only';
+  return 'Staff accounts only';
 };
 
 const roleLabel = (role) => ({ BHW: 'Barangay health worker', MIDWIFE: 'Midwife', ADMIN: 'Administrator' }[role] || role);
@@ -54,6 +54,7 @@ export function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
   const menuRef = useRef(null);
+  const chipRef = useRef(null);
   const handleLogout = async () => { setMenuOpen(false); await logout(); navigate('/login'); };
 
   /* New page: start at the top and close the account menu. */
@@ -62,7 +63,7 @@ export function Layout() {
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onDown = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') { setMenuOpen(false); chipRef.current?.focus(); } };
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
@@ -83,7 +84,7 @@ export function Layout() {
           {/* Desktop: tabs in the top bar. Phones: a bottom tab bar (same links). */}
           <nav className="topnav" aria-label="Main">
             {items.map(({ to, label, short, icon: Icon, end }) => (
-              <NavLink key={to} to={to} end={end} aria-label={label} className={({ isActive }) => `topnav-item ${isActive ? 'active' : ''}`}>
+              <NavLink key={to} to={to} end={end} className={({ isActive }) => `topnav-item ${isActive ? 'active' : ''}`}>
                 <Icon aria-hidden="true" />
                 <span className="nav-long">{label}</span>
                 <span className="nav-short">{short || label}</span>
@@ -94,7 +95,7 @@ export function Layout() {
           <div className="topbar-right">
             <span className="scope-pill" title="What this account can see"><MapPin />{scopeLabel(user)}</span>
             <div className="account" ref={menuRef}>
-              <button type="button" className="user-chip" aria-label={`Account menu for ${user.full_name}`} aria-haspopup="true" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+              <button type="button" ref={chipRef} className="user-chip" aria-expanded={menuOpen} aria-controls="account-menu" onClick={() => setMenuOpen((o) => !o)}>
                 <span className="user-initials" aria-hidden="true">{getInitials(user.full_name)}</span>
                 <span className="user-text">
                   <span className="user-name">{user.full_name}</span>
@@ -103,16 +104,16 @@ export function Layout() {
                 <ChevronDown size={16} className="chev" aria-hidden="true" />
               </button>
               {menuOpen && (
-                <div className="account-menu" role="menu">
+                <div className="account-menu" id="account-menu">
                   <div className="account-who">
                     <strong>{user.full_name}</strong>
                     <span>{roleLabel(user.role)}</span>
                     <span className="account-scope"><MapPin size={15} aria-hidden="true" />{scopeLabel(user)}</span>
                   </div>
-                  <button type="button" role="menuitem" className="account-item" onClick={() => { setMenuOpen(false); setPwOpen(true); }}>
+                  <button type="button" className="account-item" onClick={() => { setMenuOpen(false); setPwOpen(true); }}>
                     <KeyRound size={18} aria-hidden="true" />Change password
                   </button>
-                  <button type="button" role="menuitem" className="account-signout" onClick={handleLogout}>
+                  <button type="button" className="account-signout" onClick={handleLogout}>
                     <LogOut size={18} aria-hidden="true" />Sign out
                   </button>
                 </div>

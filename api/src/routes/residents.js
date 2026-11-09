@@ -29,11 +29,15 @@ export async function getResidentRecord(residentId) {
             age_years(r.birth_date) AS age_years,
             age_months(r.birth_date) AS age_months,
             age_risk_group(r.birth_date) AS age_risk_group,
-            dt.label AS disability_type
+            dt.label AS disability_type,
+            du.full_name AS deactivated_by_name,
+            uu.full_name AS updated_by_name
        FROM residents r
        JOIN households h ON h.id = r.household_id
        JOIN zones z ON z.id = h.zone_id
        LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
+       LEFT JOIN users du ON du.id = r.deactivated_by
+       LEFT JOIN users uu ON uu.id = COALESCE(r.updated_by, r.created_by)
       WHERE r.id = $1`,
     [residentId]
   );
@@ -92,8 +96,12 @@ export async function getResidentRecord(residentId) {
       other_specify: c.other_specify,
     })),
     is_active: r.is_active,
+    deactivated_at: r.deactivated_at ? new Date(r.deactivated_at).toISOString() : null,
+    deactivated_by_name: r.deactivated_by_name || null,
+    deactivation_reason: r.deactivation_reason || null,
     created_at: new Date(r.created_at).toISOString(),
     updated_at: new Date(r.updated_at).toISOString(),
+    updated_by_name: r.updated_by_name || null,
   };
 }
 
@@ -120,9 +128,13 @@ residentsRouter.get(
       const params = [];
       let paramIndex = 1;
 
-      // Active status filter
-      if (!qp.include_inactive) {
+      // Active status filter: active (default), archived, or all.
+      // include_inactive=true is the older spelling of status=all.
+      const status = qp.status ?? (qp.include_inactive ? 'all' : 'active');
+      if (status === 'active') {
         conditions.push(`r.is_active = true AND h.is_active = true`);
+      } else if (status === 'archived') {
+        conditions.push(`r.is_active = false`);
       }
 
       // Zone filtering logic
@@ -243,11 +255,15 @@ residentsRouter.get(
                  age_years(r.birth_date) AS age_years,
                  age_months(r.birth_date) AS age_months,
                  age_risk_group(r.birth_date) AS age_risk_group,
-                 dt.label AS disability_type
+                 dt.label AS disability_type,
+                 du.full_name AS deactivated_by_name,
+                 uu.full_name AS updated_by_name
             FROM residents r
             JOIN households h ON h.id = r.household_id
             JOIN zones z ON z.id = h.zone_id
             LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
+            LEFT JOIN users du ON du.id = r.deactivated_by
+            LEFT JOIN users uu ON uu.id = COALESCE(r.updated_by, r.created_by)
            WHERE r.household_id = ANY($${householdIdx}::bigint[])
              ${andClause}
            ORDER BY ${householdOrder}
@@ -261,13 +277,17 @@ residentsRouter.get(
                  age_years(r.birth_date) AS age_years,
                  age_months(r.birth_date) AS age_months,
                  age_risk_group(r.birth_date) AS age_risk_group,
-                 dt.label AS disability_type
+                 dt.label AS disability_type,
+                 du.full_name AS deactivated_by_name,
+                 uu.full_name AS updated_by_name
             FROM residents r
             JOIN households h ON h.id = r.household_id
             JOIN zones z ON z.id = h.zone_id
             LEFT JOIN disability_types dt ON dt.code = r.disability_type_code
+            LEFT JOIN users du ON du.id = r.deactivated_by
+            LEFT JOIN users uu ON uu.id = COALESCE(r.updated_by, r.created_by)
            ${whereClause}
-           ORDER BY r.last_name, r.first_name, r.id
+           ORDER BY ${status === 'archived' ? 'r.deactivated_at DESC, r.id DESC' : 'r.last_name, r.first_name, r.id'}
            LIMIT $${paramIndex++} OFFSET $${paramIndex++}
         `;
       }
@@ -282,7 +302,7 @@ residentsRouter.get(
           SELECT household_id, count(*)::int AS member_count
             FROM residents
            WHERE household_id = ANY($1::bigint[])
-             ${qp.include_inactive ? '' : 'AND is_active = true'}
+             ${status === 'active' ? 'AND is_active = true' : ''}
            GROUP BY household_id
         `;
         const memberRes = await query(memberSql, [pageHouseholdIds]);
@@ -348,8 +368,12 @@ residentsRouter.get(
         disability_type: r.disability_type,
         medical_conditions: conditionsByResident[r.id] || [],
         is_active: r.is_active,
+        deactivated_at: r.deactivated_at ? new Date(r.deactivated_at).toISOString() : null,
+        deactivated_by_name: r.deactivated_by_name || null,
+        deactivation_reason: r.deactivation_reason || null,
         created_at: new Date(r.created_at).toISOString(),
         updated_at: new Date(r.updated_at).toISOString(),
+        updated_by_name: r.updated_by_name || null,
       }));
 
       return res.status(200).json({
@@ -466,6 +490,9 @@ residentsRouter.patch(
           params.push(residentId);
           const updateSql = `UPDATE residents SET ${setClauses.join(', ')} WHERE id = $${pIndex}`;
           await client.query(updateSql, params);
+        } else if (data.medical_conditions !== undefined) {
+          // Only the conditions change: still stamp who and when on the resident.
+          await client.query('UPDATE residents SET updated_at = now() WHERE id = $1', [residentId]);
         }
 
         // Replace medical conditions if sent
@@ -487,6 +514,76 @@ residentsRouter.patch(
 
       const updatedResident = await getResidentRecord(residentId);
       return res.status(200).json(updatedResident);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * GET /api/residents/:id/history
+ * The change history of one resident, newest first: who changed what, and when.
+ * Access: BHW (own zones), Midwife (all zones). Archived residents keep their history.
+ *
+ * Only field NAMES are returned, never the old or new values.
+ */
+residentsRouter.get(
+  '/:id/history',
+  requireAuth,
+  requireRole('BHW', 'MIDWIFE'),
+  async (req, res, next) => {
+    try {
+      const residentId = parseInt(req.params.id, 10);
+      if (isNaN(residentId) || residentId < 1) {
+        throw new AppError(400, 'validation_failed', 'Invalid resident ID.');
+      }
+
+      const checkRes = await query(
+        `SELECT h.zone_id
+           FROM residents r
+           JOIN households h ON h.id = r.household_id
+          WHERE r.id = $1`,
+        [residentId]
+      );
+      if (checkRes.rows.length === 0) {
+        throw new AppError(404, 'not_found', 'Resident not found.');
+      }
+      assertRecordZoneAccess(req.user, checkRes.rows[0].zone_id, 'Resident');
+
+      const pageSize = Math.min(100, Math.max(1, parseInt(req.query.page_size, 10) || 20));
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+
+      const where = `cl.record_id = $1
+                     AND cl.table_name IN ('residents', 'resident_medical_conditions')`;
+      const countRes = await query(`SELECT count(*)::int AS total FROM change_log cl WHERE ${where}`, [residentId]);
+
+      const rowsRes = await query(
+        `SELECT cl.id, cl.changed_at, cl.action, cl.table_name, cl.changed_by,
+                actor.full_name AS changed_by_name, cl.changed_fields
+           FROM change_log cl
+           LEFT JOIN users actor ON actor.id = cl.changed_by
+          WHERE ${where}
+          ORDER BY cl.id DESC
+          LIMIT $2 OFFSET $3`,
+        [residentId, pageSize, (page - 1) * pageSize]
+      );
+
+      return res.status(200).json({
+        items: rowsRes.rows.map((r) => ({
+          id: parseInt(r.id, 10),
+          changed_at: new Date(r.changed_at).toISOString(),
+          action: r.action,
+          // Medical conditions are stored in their own table; the person reads them as a field.
+          changed_fields:
+            r.table_name === 'resident_medical_conditions'
+              ? ['medical_conditions']
+              : r.changed_fields || [],
+          changed_by_name: r.changed_by_name || null,
+        })),
+        page,
+        page_size: pageSize,
+        total: countRes.rows[0].total,
+      });
     } catch (err) {
       next(err);
     }
@@ -539,6 +636,57 @@ residentsRouter.delete(
 
       const deactivatedResident = await getResidentRecord(residentId);
       return res.status(200).json(deactivatedResident);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/residents/:id/reactivate
+ * Restores an archived (deactivated) resident.
+ * Access: BHW (own zones only). The database trigger clears the deactivation
+ * stamps and writes a REACTIVATE row to change_log with the user and time.
+ */
+residentsRouter.post(
+  '/:id/reactivate',
+  requireAuth,
+  requireRole('BHW'),
+  async (req, res, next) => {
+    try {
+      const residentId = parseInt(req.params.id, 10);
+      if (isNaN(residentId) || residentId < 1) {
+        throw new AppError(400, 'validation_failed', 'Invalid resident ID.');
+      }
+
+      const checkRes = await query(
+        `SELECT r.id, h.zone_id, h.is_active AS household_active, r.is_active
+           FROM residents r
+           JOIN households h ON h.id = r.household_id
+          WHERE r.id = $1`,
+        [residentId]
+      );
+
+      if (checkRes.rows.length === 0) {
+        throw new AppError(404, 'not_found', 'Resident not found.');
+      }
+
+      const current = checkRes.rows[0];
+      assertRecordZoneAccess(req.user, current.zone_id, 'Resident');
+
+      if (current.is_active) {
+        throw new AppError(400, 'validation_failed', 'This resident is already active.');
+      }
+      if (!current.household_active) {
+        throw new AppError(400, 'validation_failed', 'The household of this resident is deactivated.');
+      }
+
+      await withTransaction(req.user, async (client) => {
+        await client.query('UPDATE residents SET is_active = true WHERE id = $1', [residentId]);
+      });
+
+      const restored = await getResidentRecord(residentId);
+      return res.status(200).json(restored);
     } catch (err) {
       next(err);
     }

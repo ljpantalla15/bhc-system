@@ -5,11 +5,24 @@ export function Skeleton({ variant = 'text', className = '', style }) {
   return <div className={`skeleton ${variants[variant] || variants.text} ${className}`} style={style} />;
 }
 
+export function SkeletonNum() {
+  return <span className="skeleton skeleton-num" role="presentation" />;
+}
+
 export function SkeletonList({ count = 4, variant = 'row' }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div role="status" aria-label="Loading" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
       {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} variant={variant} style={{ animationDelay: `${i * 60}ms` }} />
+        variant === 'row' ? (
+          <div key={i} className="skeleton-line" style={{ animationDelay: `${i * 60}ms` }}>
+            <Skeleton variant="avatar" />
+            <Skeleton variant="text" />
+            <Skeleton variant="text" />
+            <Skeleton variant="text" />
+          </div>
+        ) : (
+          <Skeleton key={i} variant={variant} style={{ animationDelay: `${i * 60}ms` }} />
+        )
       ))}
     </div>
   );

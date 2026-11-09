@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { SkeletonNum } from '../components/Skeleton.jsx';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
@@ -61,7 +62,7 @@ export function HomePage() {
     (acc, s) => (s ? { households: acc.households + s.households, residents: acc.residents + s.residents } : acc),
     { households: 0, residents: 0 },
   );
-  const n = (v) => (loading || v === undefined || v === null ? '–' : v);
+  const n = (v) => (loading || v === undefined || v === null ? <SkeletonNum /> : v);
 
   const onSearch = (e) => {
     e.preventDefault();

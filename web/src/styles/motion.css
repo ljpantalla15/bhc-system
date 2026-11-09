@@ -1,0 +1,82 @@
+/* ==========================================================================
+   Motion: subtle entrances, staggered lists, loading states.
+   Everything here is short (<= 400ms), uses opacity and small translates
+   only, and is switched off by prefers-reduced-motion (see base.css).
+   ========================================================================== */
+
+/* Staggered entrance: set --i on the child, or rely on nth-child below. */
+.stagger > * { animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
+.stagger > *:nth-child(1) { --i: 0; }
+.stagger > *:nth-child(2) { --i: 1; }
+.stagger > *:nth-child(3) { --i: 2; }
+.stagger > *:nth-child(4) { --i: 3; }
+.stagger > *:nth-child(5) { --i: 4; }
+.stagger > *:nth-child(n+6) { --i: 5; }
+
+/* Page blocks */
+.home-hello { animation: rise 0.4s var(--ease) backwards; }
+.home-panel { animation: rise 0.4s var(--ease) backwards; }
+.home-grid > .home-panel:nth-child(2) { animation-delay: 80ms; }
+.home-list > li { animation: rowIn 0.3s var(--ease) backwards; }
+.home-list > li:nth-child(2) { animation-delay: 40ms; }
+.home-list > li:nth-child(3) { animation-delay: 80ms; }
+.home-list > li:nth-child(4) { animation-delay: 120ms; }
+.home-list > li:nth-child(n+5) { animation-delay: 160ms; }
+.home-hello-art svg { animation: fadeIn 0.7s ease 0.1s backwards; }
+
+/* Cards, chips, stats, filters */
+.ml-cards > *, .staff-stats > *, .purok-strip > *, .purok-row > * { animation: rise 0.35s var(--ease) backwards; }
+.ml-cards > *:nth-child(2), .staff-stats > *:nth-child(2), .purok-strip > *:nth-child(2) { animation-delay: 40ms; }
+.ml-cards > *:nth-child(3), .staff-stats > *:nth-child(3), .purok-strip > *:nth-child(3) { animation-delay: 80ms; }
+.ml-cards > *:nth-child(4), .staff-stats > *:nth-child(4), .purok-strip > *:nth-child(4) { animation-delay: 120ms; }
+.ml-cards > *:nth-child(n+5), .staff-stats > *:nth-child(n+5), .purok-strip > *:nth-child(n+5) { animation-delay: 160ms; }
+
+/* Feedback, empty states, pager, sheets */
+.alert { animation: rise 0.25s var(--ease) backwards; }
+.empty-state, td.empty { animation: fadeIn 0.35s ease backwards; }
+.pager { animation: fadeIn 0.3s ease 0.1s backwards; }
+.sheet { animation: rise 0.4s var(--ease) backwards; }
+.sheet-section, .card { animation: rise 0.35s var(--ease) backwards; }
+.modal .card { animation: none; }
+
+/* Login */
+.login-art { animation: fadeIn 0.5s ease backwards; }
+.login-form > * { animation: rise 0.4s var(--ease) backwards; }
+.login-form > *:nth-child(2) { animation-delay: 40ms; }
+.login-form > *:nth-child(3) { animation-delay: 80ms; }
+.login-form > *:nth-child(4) { animation-delay: 120ms; }
+.login-form > *:nth-child(5) { animation-delay: 160ms; }
+.login-form > *:nth-child(n+6) { animation-delay: 200ms; }
+
+/* Top bar */
+.topnav-item::after { transition: transform var(--t-fast), opacity var(--t-fast); }
+.topnav-item.active::after { animation: fadeIn 0.25s ease; }
+
+/* Chips and toggles respond with a tiny press */
+.condition-chip, .seg-btn, .pager-num, .purok-btn, .ml-card, .staff-stat { transition-property: background, border-color, color, box-shadow, transform; transition-duration: 140ms; transition-timing-function: var(--ease); }
+.condition-chip:active, .seg-btn:active, .pager-num:active, .purok-btn:active, .ml-card:active, .staff-stat:active { transform: scale(0.98); }
+
+/* Inputs: soft focus ring grows in */
+.form-control, .form-select { transition: border-color var(--t-fast), box-shadow 200ms var(--ease), background-color var(--t-fast); }
+
+/* Skeleton blocks for whole-panel loading */
+.skel-panel { display: flex; flex-direction: column; gap: 0.7rem; padding: 1rem 1.25rem; }
+.skel-panel .skeleton-text:nth-child(odd) { width: 70%; }
+.skel-panel .skeleton-text:nth-child(even) { width: 45%; }
+.skeleton-card-block { height: 64px; border-radius: 10px; }
+
+@media print {
+  .home-hello, .home-panel, .card, .sheet, .sheet-section, .alert, .pager, .login-form > *, .stagger > * { animation: none !important; }
+}
+
+/* Illustration: slow, quiet ambient motion */
+@keyframes drift { from { transform: translateX(-12px); } to { transform: translateX(24px); } }
+@keyframes sway { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+@keyframes flap { 50% { transform: translate(6px, -3px); } }
+.il-cloud { animation: drift 18s ease-in-out infinite alternate; }
+.il-cloud-b { animation-duration: 24s; animation-delay: -6s; }
+.il-cloud-c { animation-duration: 30s; animation-delay: -12s; }
+.il-sway { transform-origin: 318px 400px; transform-box: view-box; animation: sway 5s ease-in-out infinite alternate; }
+.il-birds { animation: flap 7s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-1.5px); } }
+.il-person { animation: bob 3.2s ease-in-out infinite; }

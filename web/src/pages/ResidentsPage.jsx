@@ -11,12 +11,13 @@ import { PurokStrip } from '../components/Card.jsx';
 import { Button, IconButton } from '../components/Button.jsx';
 import { Input, FormGroup, FormGrid } from '../components/Form.jsx';
 import { showToast } from '../components/Toast.jsx';
+import { ResidentHistory } from '../components/ResidentHistory.jsx';
 import {
   ZONES, AGE_RISK_GROUPS, RELATIONS_TO_HEAD, CIVIL_STATUSES,
   EDUCATION_LEVELS, MEDICAL_CONDITIONS, DISABILITY_TYPES, FP_METHODS,
   WATER_SOURCES, TOILET_FACILITIES, AGE_GROUP_SHORT, ageGroupChip, residentTab,
 } from '../constants.js';
-import { Plus, Search, Eye, Pencil, UserX, X, Check, Home } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, UserX, X, Check, Home, Archive, RotateCcw } from 'lucide-react';
 
 const CONDITION_NAME = { HPN: 'Hypertension', DM: 'Diabetes', TB: 'Tuberculosis' };
 
@@ -29,6 +30,8 @@ const Icons = {
   close: <X className="h-4 w-4" />,
   closeSm: <X className="h-3.5 w-3.5" />,
   household: <Home className="h-4 w-4" />,
+  archive: <Archive className="h-4 w-4" />,
+  restore: <RotateCcw className="h-4 w-4" />,
 };
 
 export function ResidentsPage() {
@@ -56,6 +59,10 @@ export function ResidentsPage() {
   const [selectedZone, setSelectedZone] = useState(initialZone);
   const [ageGroup, setAgeGroup] = useState('');
   const [groupBy, setGroupBy] = useState('household');
+  /* 'active' is the working list; 'archived' shows deactivated residents (read-only, BHW can restore). */
+  const [view, setView] = useState('active');
+  const archived = view === 'archived';
+  const effGroupBy = archived ? 'name' : groupBy;
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalResidents, setTotalResidents] = useState(0);
@@ -72,6 +79,7 @@ export function ResidentsPage() {
   const [editingResident, setEditingResident] = useState(null);
   const [deactivatingResident, setDeactivatingResident] = useState(null);
   const [deactivationReason, setDeactivationReason] = useState('');
+  const [restoringResident, setRestoringResident] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [viewingHousehold, setViewingHousehold] = useState(null);
   const [householdLoading, setHouseholdLoading] = useState(false);
@@ -84,7 +92,8 @@ export function ResidentsPage() {
       if (q.trim()) params.set('q', q.trim());
       if (selectedZone) params.set('zone_id', selectedZone);
       if (ageGroup) params.set('age_risk_group', ageGroup);
-      params.set('group_by', groupBy);
+      params.set('group_by', effGroupBy);
+      if (archived) params.set('status', 'archived');
       params.set('page', String(page));
       params.set('page_size', String(pageSize));
       const data = await api(`/api/residents?${params.toString()}`);
@@ -94,9 +103,9 @@ export function ResidentsPage() {
       setTotalHouseholds(data.total_households ?? 0);
     } catch (err) {
       setError(err.message || 'Failed to load residents.');
-      showToast({ type: 'danger', message: 'Failed to load residents.' });
+      showToast({ type: 'danger', message: archived ? 'Failed to load the archive.' : 'Failed to load residents.' });
     } finally { setLoading(false); }
-  }, [q, selectedZone, ageGroup, groupBy, page, pageSize]);
+  }, [q, selectedZone, ageGroup, effGroupBy, archived, page, pageSize]);
 
   useEffect(() => { fetchResidents(); }, [fetchResidents]);
 
@@ -125,6 +134,7 @@ export function ResidentsPage() {
   const handleResetFilters = () => { setQ(''); setSelectedZone(''); setAgeGroup(''); setPage(1); };
 
   const handleGroupByChange = (value) => { setGroupBy(value); setPage(1); };
+  const handleViewChange = (value) => { setView(value); setPage(1); setError(''); };
 
   const openHousehold = async (householdId) => {
     setHouseholdLoading(true);
@@ -141,7 +151,7 @@ export function ResidentsPage() {
    * household, followed by its members, so a family is read as one block.
    */
   const tableRows = React.useMemo(() => {
-    if (groupBy !== 'household') {
+    if (effGroupBy !== 'household') {
       return residents.map((r) => ({ kind: 'resident', resident: r }));
     }
     const shownByHousehold = {};
@@ -232,11 +242,36 @@ export function ResidentsPage() {
     } finally { setActionLoading(false); }
   };
 
+  const handleConfirmRestore = async () => {
+    if (!restoringResident) return;
+    setActionLoading(true);
+    setError('');
+    try {
+      await api(`/api/residents/${restoringResident.id}/reactivate`, { method: 'POST' });
+      showToast({ type: 'success', message: `${restoringResident.first_name} ${restoringResident.last_name} was restored.` });
+      setRestoringResident(null);
+      setViewingResident(null);
+      fetchResidents();
+      fetchPurokCounts();
+    } catch (err) {
+      const message = err.message || 'Failed to restore resident.';
+      setRestoringResident(null);
+      setError(message);
+      showToast({ type: 'danger', message });
+    } finally { setActionLoading(false); }
+  };
+
   /* Health notes in plain words, so nobody has to decode HPN or FP. */
   /* "1959-03-14" -> "14 Mar 1959" */
   const fmtDate = (iso) => {
     if (!iso) return null;
     const d = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+  /* Timestamps from the API (archived date) -> "14 Mar 2026" */
+  const fmtStamp = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-PH', { day: 'numeric', month: 'short', year: 'numeric' });
   };
   const relationLabel = (code) => RELATIONS_TO_HEAD.find((x) => x.code === code)?.label || code;
@@ -266,16 +301,18 @@ export function ResidentsPage() {
     <span className={`pchip ${ageGroupChip(code)}`} title={AGE_RISK_GROUPS[code] || code}>{AGE_GROUP_SHORT[code] || code}</span>
   );
 
-  const byHousehold = groupBy === 'household';
-  const colCount = byHousehold ? 5 : 7;
+  const byHousehold = effGroupBy === 'household';
+  const colCount = archived ? 6 : byHousehold ? 6 : 8;
 
   return (
     <div className="page-stack">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Residents</h1>
+          <h1 className="page-title">{archived ? 'Archived residents' : 'Residents'}</h1>
           <p className="page-subtitle">
-            {isBHW
+            {archived
+              ? (isBHW ? 'Residents you deactivated in your puroks. Restore one if they came back or it was a mistake.' : 'Deactivated residents of all puroks, kept for the record. Read-only.')
+              : isBHW
               ? (assignedZones.length > 1
                 ? `Residents of your puroks (${assignedZones.map((id) => `Purok ${id}`).join(', ')}), by household.`
                 : `Residents of Purok ${assignedZones[0] ?? ''}, by household.`)
@@ -283,7 +320,11 @@ export function ResidentsPage() {
           </p>
         </div>
         <div className="page-actions">
-          {isBHW && (<Link to="/households/new"><Button variant="primary" iconLeft={Icons.plus}>Encode household</Button></Link>)}
+          <div className="seg-control" role="group" aria-label="Which residents">
+            <button type="button" className={`seg-btn ${!archived ? 'on' : ''}`} aria-pressed={!archived} onClick={() => handleViewChange('active')}>Active</button>
+            <button type="button" className={`seg-btn ${archived ? 'on' : ''}`} aria-pressed={archived} onClick={() => handleViewChange('archived')}>{Icons.archive} Archived</button>
+          </div>
+          {isBHW && !archived && (<Link to="/households/new"><Button variant="primary" iconLeft={Icons.plus}>Encode household</Button></Link>)}
         </div>
       </div>
 
@@ -291,7 +332,7 @@ export function ResidentsPage() {
       <Alert type="success" message={success} onClose={() => setSuccess('')} />
 
       {/* Midwife: purok cards across all puroks. Health workers pick from the filter bar instead. */}
-      {!isBHW && (
+      {!isBHW && !archived && (
         <PurokStrip
           zones={ZONES}
           counts={purokCounts}
@@ -326,17 +367,19 @@ export function ResidentsPage() {
           {Object.entries(AGE_RISK_GROUPS).map(([code, label]) => (<option key={code} value={code}>{label}</option>))}
         </select>
 
-        <div className="seg-control" role="group" aria-label="Group residents by">
+        {!archived && (<div className="seg-control" role="group" aria-label="Group residents by">
           <button type="button" className={`seg-btn ${byHousehold ? 'on' : ''}`} aria-pressed={byHousehold} onClick={() => handleGroupByChange('household')}>By household</button>
           <button type="button" className={`seg-btn ${!byHousehold ? 'on' : ''}`} aria-pressed={!byHousehold} onClick={() => handleGroupByChange('name')}>By name</button>
-        </div>
+        </div>)}
 
         {(q || selectedZone || ageGroup) && (
           <Button variant="ghost" onClick={handleResetFilters} className="full">Clear filters</Button>
         )}
 
         <span className="toolbar-meta">
-          {byHousehold ? (
+          {archived ? (
+            <><strong>{total}</strong> archived {total === 1 ? 'resident' : 'residents'}</>
+          ) : byHousehold ? (
             <><strong>{totalHouseholds}</strong> {totalHouseholds === 1 ? 'household' : 'households'}, <strong>{totalResidents}</strong> {totalResidents === 1 ? 'resident' : 'residents'}</>
           ) : (
             <><strong>{total}</strong> {total === 1 ? 'resident' : 'residents'}</>
@@ -353,8 +396,9 @@ export function ResidentsPage() {
                 {!byHousehold && <th>Household no.</th>}
                 {!byHousehold && <th>Purok</th>}
                 <th className="col-age">Age and sex</th>
-                <th className="col-group">Target group</th>
-                <th>Health notes</th>
+                {archived ? <th>Archived</th> : <th className="col-group">Target group</th>}
+                {!archived && <th>Health notes</th>}
+                {!archived && <th className="col-updated">Last updated</th>}
                 <th className="col-actions"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -362,7 +406,9 @@ export function ResidentsPage() {
               {loading ? (
                 <tr><td colSpan={colCount} style={{ padding: '0.5rem 0' }}><SkeletonList count={6} variant="row" /></td></tr>
               ) : residents.length === 0 ? (
-                <tr><td colSpan={colCount}><EmptyState title="No residents match" description="Try another name, purok, or target group." action={handleResetFilters} actionLabel="Clear filters" /></td></tr>
+                <tr><td colSpan={colCount}>{archived && !q && !selectedZone && !ageGroup
+                  ? <EmptyState title="No archived residents" description="Nobody has been deactivated yet. Residents you deactivate will be listed here." />
+                  : <EmptyState title={archived ? 'No archived residents match' : 'No residents match'} description="Try another name, purok, or target group." action={handleResetFilters} actionLabel="Clear filters" />}</td></tr>
               ) : (
                 tableRows.map((row) => {
                   if (row.kind === 'group') {
@@ -402,12 +448,28 @@ export function ResidentsPage() {
                         <strong>{r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months ?? 0} mos`}</strong>
                         <span>{r.sex === 'M' ? 'Male' : 'Female'}</span>
                       </td>
-                      <td>{groupChip(r.age_risk_group)}</td>
-                      <td className="cell-notes">{flagsFor(r)}</td>
+                      {archived ? (
+                        <td className="cell-notes">
+                          <strong>{fmtStamp(r.deactivated_at) || 'Unknown date'}</strong>
+                          <span className="muted"> by {r.deactivated_by_name || 'unknown'}</span>
+                          <span className="muted" style={{ display: 'block' }}>{r.deactivation_reason ? `Reason: ${r.deactivation_reason}` : 'No reason given'}</span>
+                        </td>
+                      ) : (
+                        <>
+                          <td>{groupChip(r.age_risk_group)}</td>
+                          <td className="cell-notes">{flagsFor(r)}</td>
+                          <td className="cell-updated">
+                            <strong>{fmtStamp(r.updated_at) || '–'}</strong>
+                            <span>by {r.updated_by_name || 'unknown'}</span>
+                          </td>
+                        </>
+                      )}
                       <td>
                         <div className="row-actions">
                           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setViewingResident(r)} aria-label={`View profile of ${r.first_name} ${r.last_name}`}>View</button>
-                          {isBHW && (<><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate (moved out or deceased)" variant="ghost-danger" /></>)}
+                          {isBHW && (archived
+                            ? <button type="button" className="btn btn-secondary btn-sm" onClick={() => setRestoringResident(r)} aria-label={`Restore ${r.first_name} ${r.last_name}`}>{Icons.restore} Restore</button>
+                            : <><IconButton icon={Icons.edit} onClick={() => handleOpenEdit(r)} title="Edit record" /><IconButton icon={Icons.trash} onClick={() => setDeactivatingResident(r)} title="Deactivate (moved out or deceased)" variant="ghost-danger" /></>)}
                         </div>
                       </td>
                     </tr>
@@ -508,8 +570,11 @@ export function ResidentsPage() {
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setViewingResident(null)}>Close</Button>
-            {isBHW && (
+            {isBHW && viewingResident && viewingResident.is_active && (
               <Button variant="primary" type="button" onClick={() => { const t = viewingResident; setViewingResident(null); handleOpenEdit(t); }}>Edit profile</Button>
+            )}
+            {isBHW && viewingResident && !viewingResident.is_active && (
+              <Button variant="primary" type="button" iconLeft={Icons.restore} onClick={() => setRestoringResident(viewingResident)}>Restore resident</Button>
             )}
           </>
         }
@@ -520,6 +585,15 @@ export function ResidentsPage() {
           const fp = FP_METHODS.find((m) => m.code === r.fp_method_code)?.label || r.fp_method_code;
           return (
             <div className="sheet-body">
+              {!r.is_active && (
+                <div className="notice notice-info" role="status">
+                  <Archive className="h-[18px] w-[18px] shrink-0" />
+                  <div>
+                    <strong>Archived {fmtStamp(r.deactivated_at) ? `on ${fmtStamp(r.deactivated_at)}` : ''} by {r.deactivated_by_name || 'unknown'}</strong>
+                    <p style={{ fontSize: 'var(--fs-sm)', marginTop: '3px' }}>{r.deactivation_reason ? `Reason: ${r.deactivation_reason}` : 'No reason was given.'}</p>
+                  </div>
+                </div>
+              )}
               <div className="sheet-summary">
                 <span className="sheet-facts">{ageText(r)} · {r.sex === 'M' ? 'Male' : 'Female'} · {r.relation_to_head === 'HEAD' ? 'Head of household' : relationLabel(r.relation_to_head)}</span>
                 <div className="flags">
@@ -559,6 +633,8 @@ export function ResidentsPage() {
                   <Row label="Occupation" muted={!r.occupation}>{r.occupation || 'Not stated'}</Row>
                 </dl>
               </section>
+
+              <ResidentHistory residentId={r.id} />
             </div>
           );
         })()}
@@ -645,29 +721,29 @@ export function ResidentsPage() {
                 </div>
               </div>
 
-              <div style={{ marginTop: '0' }}>
-                <label className="form-label" style={{ marginBottom: '0.6rem' }}>Diagnosed medical conditions</label>
+              <fieldset style={{ marginTop: '0', border: 0, padding: 0, minWidth: 0 }}>
+                <legend className="form-label" style={{ marginBottom: '0.6rem', padding: 0 }}>Diagnosed medical conditions</legend>
               <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 {MEDICAL_CONDITIONS.map((cond) => {
                   const checked = (editingResident.medical_conditions || []).includes(cond.code);
                   return (
-                    <div key={cond.code} className={`condition-chip ${checked ? 'active' : ''}`} onClick={() => {
+                    <button type="button" key={cond.code} aria-pressed={checked} className={`condition-chip ${checked ? 'active' : ''}`} onClick={() => {
                       const list = editingResident.medical_conditions || [];
                       const updated = checked ? list.filter((c) => c !== cond.code) : [...list, cond.code];
                       setEditingResident({ ...editingResident, medical_conditions: updated });
                     }}>
                       <span className="chip-mark">{checked ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}</span>
                       <span>{cond.label}</span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
               {(editingResident.medical_conditions || []).includes('OTH') && (
                 <div style={{ marginTop: '0.75rem', maxWidth: '360px' }}>
-                  <Input type="text" placeholder="Specify other condition" value={editingResident.other_condition_specify} onChange={(e) => setEditingResident({ ...editingResident, other_condition_specify: e.target.value })} required />
+                  <Input type="text" aria-label="Specify other condition" placeholder="Specify other condition" value={editingResident.other_condition_specify} onChange={(e) => setEditingResident({ ...editingResident, other_condition_specify: e.target.value })} required />
                 </div>
               )}
-            </div>
+            </fieldset>
             </div>
           </form>
         )}
@@ -697,6 +773,32 @@ export function ResidentsPage() {
             <FormGroup label="Reason for deactivation (optional audit note)">
               <Input id="deact_reason" placeholder="e.g. Relocated, Deceased, Transfer" value={deactivationReason} onChange={(e) => setDeactivationReason(e.target.value)} maxLength={200} />
             </FormGroup>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!restoringResident}
+        onClose={() => setRestoringResident(null)}
+        title="Restore this resident?"
+        subtitle="They return to the resident list and the program masterlists."
+        footer={
+          <>
+            <Button variant="secondary" type="button" onClick={() => setRestoringResident(null)} disabled={actionLoading}>Cancel</Button>
+            <Button variant="primary" type="button" onClick={handleConfirmRestore} loading={actionLoading}>{actionLoading ? 'Restoring…' : 'Restore resident'}</Button>
+          </>
+        }
+      >
+        {restoringResident && (
+          <div className="notice notice-info">
+            <RotateCcw className="h-[18px] w-[18px] shrink-0" />
+            <div>
+              <h4 style={{ fontSize: 'var(--fs-base)', fontWeight: 700 }}>Restore {restoringResident.first_name} {restoringResident.last_name}?</h4>
+              <p style={{ fontSize: 'var(--fs-sm)', marginTop: '3px' }}>
+                Archived {fmtStamp(restoringResident.deactivated_at) ? `on ${fmtStamp(restoringResident.deactivated_at)} ` : ''}by {restoringResident.deactivated_by_name || 'unknown'}
+                {restoringResident.deactivation_reason ? `: ${restoringResident.deactivation_reason}.` : '.'} The restore is added to the change history with your name.
+              </p>
+            </div>
           </div>
         )}
       </Modal>

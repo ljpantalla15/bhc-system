@@ -1,0 +1,36 @@
+meta {
+  name: Search Archived Residents - Success
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/residents?status=archived&page_size=100
+  body: none
+  auth: bearer
+}
+
+params:query {
+  status: archived
+  page_size: 100
+}
+
+auth:bearer {
+  token: {{bhw1Token}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("status code is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test("every listed resident is archived", function() {
+    res.body.items.forEach(function(r) {
+      expect(r.is_active).to.equal(false);
+      expect(r.deactivated_at).to.not.equal(null);
+    });
+  });
+}

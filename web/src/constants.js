@@ -220,3 +220,22 @@ export const CATEGORY_THEME = {
   PREGNANT: 't-maternal',
   PWD: 't-pwd',
 };
+
+/* Field names in plain words, for the change history. Anything not listed is tidied from its column name. */
+export const FIELD_LABELS = {
+  last_name: 'Last name', first_name: 'First name', middle_name: 'Middle name',
+  relation_to_head: 'Relation to head', relation_other: 'Relation (other)',
+  birth_date: 'Birth date', sex: 'Sex', civil_status_code: 'Civil status',
+  education_code: 'Education', religion_code: 'Religion', religion_other: 'Religion (other)',
+  ethnic_group: 'Ethnic group', occupation: 'Occupation',
+  philhealth_id: 'PhilHealth ID', philhealth_membership: 'PhilHealth membership', philhealth_category: 'PhilHealth category',
+  is_pregnant: 'Pregnancy', lmp_date: 'Last menstrual period', uses_fp: 'Family planning',
+  fp_method_code: 'FP method', fp_method_other: 'FP method (other)', fp_status_code: 'FP status',
+  is_pwd: 'PWD', disability_type_code: 'Disability type',
+  is_active: 'Active status', deactivation_reason: 'Archive reason',
+  medical_conditions: 'Medical conditions',
+};
+export const fieldLabel = (f) => FIELD_LABELS[f] || f.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+/* Bookkeeping columns say nothing a person needs; the history hides them unless they are all that changed. */
+export const QUIET_FIELDS = new Set(['updated_at', 'updated_by', 'deactivated_at', 'deactivated_by', 'created_at', 'created_by']);

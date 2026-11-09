@@ -33,7 +33,7 @@ To ensure sensitive demographic and health risk data is accessed solely on a nee
 
 3. **Midwife (`MIDWIFE`)**:
    - **Scope**: Read-only oversight across all puroks for maternal and child health monitoring and target disease surveillance.
-   - **Privacy Boundary**: Forbidden from modifying or deactivating resident records (returns `403 Forbidden` on POST/PATCH/DELETE).
+   - **Privacy Boundary**: Forbidden from modifying, deactivating, or restoring resident records (returns `403 Forbidden` on POST/PATCH/DELETE).
 
 ---
 
@@ -49,6 +49,8 @@ The following privacy and security controls are implemented and verified in code
 | **Anti-Reconnaissance** | BHW queries for records in other zones return `404 Not Found` rather than `403 Forbidden`, preventing workers from discovering if a resident exists in another purok. | Verified in `api/src/middleware/zoneAccess.js` and test suite |
 | **Immutable Audit Logging** | Data modifications stamp `created_by`, `updated_by`, and `deactivated_by` via database triggers using `app.current_user_id`. Every change is logged to `change_log`. | Verified in `database/01_schema.sql` and `api/test/residents.test.js` |
 | **Soft Deactivation (No Hard Deletes)** | `DELETE` operations are disabled on resident and household tables. Records are flagged `is_active = false`, preserving historical epidemiological integrity. | Verified in DB triggers and `api/src/routes/residents.js` |
+| **Change History per Resident** | Each resident record shows who last changed it and when ("Last updated"), and the profile lists the full history (`GET /api/residents/{id}/history`). Same access as the record itself: BHW own zones (404 elsewhere), Midwife all zones, Administrator 403. Only the names of changed fields are returned, never old or new values. | Verified in `api/test/resident-history.test.js` |
+| **Archive and Restore** | Archived residents are listed with `GET /api/residents?status=archived` (BHW own zones, Midwife all zones, Administrator 403) and shown with who archived them, when, and why. Only a BHW can restore one (`POST /api/residents/{id}/reactivate`); the restore is logged as `REACTIVATE`. | Verified in `api/test/archive.test.js` |
 | **Brute-Force Rate Limiting** | Authentication endpoints are throttled via `express-rate-limit` (max 10 attempts per 15 minutes per IP). | Verified in `api/src/routes/auth.js` and Step 12 benchmarks |
 | **Principle of Least Privilege** | The API communicates with PostgreSQL as `bhc_api`, an unprivileged role without DDL rights or database ownership. | Verified in `database/02_api_role.sql` |
 

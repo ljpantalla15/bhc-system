@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../api.js';
 import { Alert } from '../components/Alert.jsx';
-import { SkeletonList } from '../components/Skeleton.jsx';
+import { SkeletonList, SkeletonNum } from '../components/Skeleton.jsx';
 import { Button } from '../components/Button.jsx';
 import { showToast } from '../components/Toast.jsx';
 import { downloadCsv, slug } from '../lib/csv.js';
@@ -253,7 +253,7 @@ export function MasterlistsPage() {
             <button key={cat.key} type="button" className={`ml-card ${CATEGORY_THEME[cat.key] || 't-all'}`} aria-pressed={category === cat.key} onClick={() => setCategory(cat.key)}>
               <Icon className="ml-card-icon" aria-hidden="true" />
               <span>{SHORT_LABEL[cat.key]}</span>
-              <strong>{counts[cat.key] ?? '–'}</strong>
+              <strong>{counts[cat.key] ?? <SkeletonNum />}</strong>
             </button>
           );
         })}
@@ -300,9 +300,9 @@ export function MasterlistsPage() {
                 <span className="print-only">{fmtDate(reportDate)}</span>
               </dd>
             </div>
-            <div><dt>{isAll ? 'Residents' : 'Total listed'}</dt><dd>{loading ? '–' : `${rows.length} (${female} female, ${male} male)`}</dd></div>
+            <div><dt>{isAll ? 'Residents' : 'Total listed'}</dt><dd>{loading ? <SkeletonNum /> : `${rows.length} (${female} female, ${male} male)`}</dd></div>
             {isAll
-              ? <div><dt>Households</dt><dd>{loading ? '–' : households.length}</dd></div>
+              ? <div><dt>Households</dt><dd>{loading ? <SkeletonNum /> : households.length}</dd></div>
               : <div><dt>Arranged by</dt><dd>{SORTS[sortBy].label}</dd></div>}
           </dl>
 

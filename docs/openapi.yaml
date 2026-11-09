@@ -180,7 +180,7 @@ paths:
       tags: [Residents]
       operationId: searchResidents
       summary: Search residents
-      description: "**Access:** BHW (own zones), Midwife (all zones). Results are limited to active residents unless `include_inactive=true`."
+      description: "**Access:** BHW (own zones), Midwife (all zones). Results are limited to active residents unless `status` says otherwise. Use `status=archived` for the archive of deactivated residents (newest first)."
       parameters:
         - name: q
           in: query
@@ -197,7 +197,19 @@ paths:
           schema: { $ref: '#/components/schemas/AgeRiskGroup' }
         - name: include_inactive
           in: query
+          description: Older spelling of `status=all`. Ignored when `status` is sent.
           schema: { type: boolean, default: false }
+        - name: status
+          in: query
+          description: |
+            Which residents to list.
+
+            * `active` (default) — residents that are in use.
+            * `archived` — only deactivated residents, newest deactivation first.
+              Each item carries `deactivated_at`, `deactivated_by_name` and
+              `deactivation_reason`. A BHW still sees only their own zones.
+            * `all` — active and archived together.
+          schema: { type: string, enum: [active, archived, all] }
         - name: group_by
           in: query
           description: |
@@ -269,6 +281,64 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Resident' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/residents/{id}/reactivate:
+    post:
+      tags: [Residents]
+      operationId: reactivateResident
+      summary: Restore an archived resident
+      description: |
+        **Access:** BHW (own zones). Brings a deactivated resident back into the active lists
+        and masterlists. The deactivation stamps (`deactivated_at`, `deactivated_by_name`,
+        `deactivation_reason`) are cleared and a `REACTIVATE` row is written to the change log
+        with the user and time. The request has no body.
+
+        Fails with **400 `validation_failed`** when the resident is already active, when the
+        household is deactivated, or when restoring would clash with an active record (for
+        example a second head of household): the error never contains resident data.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The restored resident.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Resident' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/residents/{id}/history:
+    get:
+      tags: [Residents]
+      operationId: getResidentHistory
+      summary: Change history of one resident
+      description: |
+        **Access:** BHW (own zones, otherwise 404), Midwife (all zones). Administrator gets 403.
+        Who changed this resident's record and when, newest first, read from the append-only
+        `change_log`. An archived resident keeps their history, including the archive and the restore.
+
+        Only the **names** of the changed fields are returned, never the old or new values.
+        Changes to the medical conditions appear as the field `medical_conditions`.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - name: page_size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: A page of history entries, newest first.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResidentHistoryPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -646,8 +716,32 @@ components:
             age_risk_group: { $ref: '#/components/schemas/AgeRiskGroup' }
             disability_type: { type: [string, 'null'], readOnly: true, description: Label of disability_type_code. }
             is_active: { type: boolean, readOnly: true }
+            deactivated_at: { type: [string, 'null'], format: date-time, readOnly: true, description: When the resident was archived. Null while active. }
+            deactivated_by_name: { type: [string, 'null'], readOnly: true, description: Full name of the user who archived the resident. Null while active. }
+            deactivation_reason: { type: [string, 'null'], readOnly: true, description: The optional reason given when the resident was archived. Null while active. }
             created_at: { type: string, format: date-time, readOnly: true }
-            updated_at: { type: string, format: date-time, readOnly: true }
+            updated_at: { type: string, format: date-time, readOnly: true, description: When the record was last changed. }
+            updated_by_name: { type: [string, 'null'], readOnly: true, description: Full name of the user who last changed the record (or created it, if never changed). }
+    ResidentHistoryItem:
+      type: object
+      required: [id, changed_at, action, changed_fields]
+      properties:
+        id: { type: integer, format: int64, readOnly: true }
+        changed_at: { type: string, format: date-time }
+        action: { type: string, enum: [CREATE, UPDATE, DEACTIVATE, REACTIVATE, DELETE] }
+        changed_by_name: { type: [string, 'null'], description: Full name of the user who made the change. }
+        changed_fields:
+          type: array
+          items: { type: string }
+          description: Names of the fields that changed. Empty for `CREATE`. Values are never returned.
+    ResidentHistoryPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ResidentHistoryItem' } }
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
     ResidentPage:
       type: object
       required: [items, page, page_size, total]
