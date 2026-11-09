@@ -11,11 +11,17 @@ const getInitials = (name) => {
   return name.slice(0, 2).toUpperCase();
 };
 
-/** The health center's mark: a cross. */
+/**
+ * The health center's mark: a hexagon split in two blues (two halves of one
+ * community) with a white cross. Full colour, so it sits on a light tile.
+ * The same drawing is in public/logo.svg.
+ */
 export function HealthMark({ size = 18 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M10 4.5h4V10h5.5v4H14v5.5h-4V14H4.5v-4H10V4.5Z" fill="currentColor" />
+    <svg width={size} height={size} viewBox="2 2 44 44" aria-hidden="true">
+      <path d="M24 3 5.8 13.5v21L24 45z" fill="#1e3d59" />
+      <path d="M24 3 42.2 13.5v21L24 45z" fill="#3bb0e0" />
+      <path d="M20 12h8v8h8v8h-8v8h-8v-8h-8v-8h8z" fill="#fff" />
     </svg>
   );
 }
@@ -77,7 +83,7 @@ export function Layout() {
       <header className="topbar">
         <div className="topbar-inner">
           <NavLink to="/" className="brand" aria-label="Barangay Tago Health Center, home">
-            <span className="brand-mark"><HealthMark size={18} /></span>
+            <span className="brand-mark"><HealthMark size={24} /></span>
             <span className="brand-text"><strong>Tago Health Center</strong><span>Naga City</span></span>
           </NavLink>
 

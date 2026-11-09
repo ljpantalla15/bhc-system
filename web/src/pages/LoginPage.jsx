@@ -45,7 +45,7 @@ export function LoginPage() {
     <div className="login-page">
       <aside className="login-art">
         <header className="login-masthead">
-          <span className="login-seal"><HealthMark size={18} /></span>
+          <span className="login-seal"><HealthMark size={24} /></span>
           <div>
             <strong>Barangay Tago Health Center</strong>
             <span>Naga City</span>

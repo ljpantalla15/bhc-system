@@ -142,7 +142,7 @@
 .login-masthead { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: 0.7rem; padding: 1.75rem 2.5rem 0; }
 .login-masthead strong { display: block; font-size: var(--fs-md); color: var(--text-heading); line-height: 1.2; }
 .login-masthead div span { display: block; font-size: var(--fs-xs); color: var(--muted); }
-.login-seal { width: 34px; height: 34px; border-radius: 8px; background: var(--ink-strong); color: #fff; display: grid; place-items: center; flex-shrink: 0; }
+.login-seal { width: 36px; height: 36px; border-radius: 8px; background: #fff; border: 1px solid var(--border); color: var(--ink-strong); display: grid; place-items: center; flex-shrink: 0; }
 .login-art figure { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; margin: 0; }
 .login-illustration { display: block; width: 100%; height: auto; }
 .login-art figcaption { padding: 1rem 2.5rem 1.5rem; background: #e8dcc4; color: #4a3c26; font-size: var(--fs-sm); line-height: 1.5; max-width: none; }
