@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../api.js";
+import { localISODate } from "../lib/utils.js";
 import { Alert } from "../components/Alert.jsx";
 import { Modal } from "../components/Modal.jsx";
 import { FormSection } from "../components/Card.jsx";
@@ -79,7 +80,7 @@ const defaultHousehold = (assignedZoneIds) => {
   const randomSuffix = String(Math.floor(10000 + Math.random() * 90000));
   return {
     household_no: `${yyyymm}-TAGO-${randomSuffix}`,
-    date_of_visit: now.toISOString().slice(0, 10),
+    date_of_visit: localISODate(now),
     zone_id: assignedZoneIds.length > 0 ? assignedZoneIds[0] : 1,
     address_line: "",
     water_source_code: "LV3",
@@ -259,7 +260,7 @@ export function HouseholdFormPage() {
   const navigate = useNavigate();
 
   const assignedZoneIds = user?.zone_ids || [];
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const todayStr = useMemo(() => localISODate(), []);
   const ageRef = useMemo(() => new Date(`${todayStr}T00:00:00`), [todayStr]);
 
   /* Draft autosave (session only — cleared on submit, discard, or tab close). */
