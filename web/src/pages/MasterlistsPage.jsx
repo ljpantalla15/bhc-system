@@ -7,6 +7,7 @@ import { SkeletonList, SkeletonNum } from '../components/Skeleton.jsx';
 import { Button } from '../components/Button.jsx';
 import { showToast } from '../components/Toast.jsx';
 import { downloadCsv, slug } from '../lib/csv.js';
+import { localISODate } from '../lib/utils.js';
 import {
   ZONES, MASTERLIST_CATEGORIES, CATEGORY_THEME, RELATIONS_TO_HEAD, CIVIL_STATUSES, EDUCATION_LEVELS,
   FP_METHODS, DISABILITY_TYPES, AGE_RISK_GROUPS, AGE_GROUP_SHORT, RELIGIONS, FP_STATUSES,
@@ -40,7 +41,7 @@ const eddFrom = (lmp) => {
   const d = new Date(`${lmp}T00:00:00`);
   if (Number.isNaN(d.getTime())) return '';
   d.setDate(d.getDate() + 280);
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 };
 const ageText = (r) => (r.age_years > 0 ? `${r.age_years} yrs` : `${r.age_months ?? 0} mos`);
 const conditionsText = (r) => (r.medical_conditions || []).map((c) => CONDITION_NAME[c.condition_code] || c.other_specify || 'Other').join(', ');
@@ -99,7 +100,7 @@ export function MasterlistsPage() {
   const [lhBarangay, setLhBarangay] = useState('Barangay Tago');
   const [healthCenterName, setHealthCenterName] = useState('Barangay Tago Health Center');
   const [coverageArea, setCoverageArea] = useState(defaultArea);
-  const [reportDate, setReportDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reportDate, setReportDate] = useState(localISODate());
   const [preparedBy, setPreparedBy] = useState(user?.full_name || '');
   const [preparedByRole, setPreparedByRole] = useState(user?.role === 'BHW' ? 'Barangay Health Worker' : user?.role === 'MIDWIFE' ? 'Midwife' : '');
   const [certifiedBy, setCertifiedBy] = useState('Maria Santos, RM');
