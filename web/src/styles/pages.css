@@ -166,6 +166,20 @@
 .login-demo button span { color: var(--muted); line-height: 1.35; }
 .login-demo button strong { display: block; color: var(--text); font-weight: 600; }
 .login-foot { font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.link-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 2px; }
+
+/* Data privacy notice */
+.privacy-notice { font-size: var(--fs-sm); line-height: 1.6; color: var(--text-heading); }
+.privacy-notice h3 { margin: 1.1rem 0 0.35rem; font-size: var(--fs-md); color: var(--ink); }
+.privacy-notice p { margin: 0 0 0.5rem; }
+.privacy-notice ul { margin: 0 0 0.5rem; padding-left: 1.2rem; }
+.privacy-notice li { margin-bottom: 0.25rem; }
+.privacy-lead { color: var(--muted); }
+.privacy-note { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: var(--fs-xs); color: var(--muted); }
+.app-foot { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: var(--fs-xs); color: var(--muted); }
+.app-foot button { background: none; border: 0; padding: 0; font: inherit; color: var(--ink); text-decoration: underline; cursor: pointer; }
+@media print { .app-foot { display: none; } }
 
 /* Desktop: the whole page fits the window. The picture stretches to fill its
    column (cropping sky first), and spacing tightens on shorter screens. */

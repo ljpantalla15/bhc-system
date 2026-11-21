@@ -7,15 +7,7 @@ import { Button } from '../components/Button.jsx';
 import { Input } from '../components/Form.jsx';
 import { HealthMark } from '../components/Layout.jsx';
 import { LoginIllustration } from '../components/LoginIllustration.jsx';
-
-// Synthetic demo accounts from database/03_demo_seed.sql. All share one password.
-const DEMO_PASSWORD = 'Demo#12345';
-const DEMO_ACCOUNTS = [
-  { user: 'bhw1', role: 'Health worker', scope: 'Purok 1' },
-  { user: 'bhw2', role: 'Health worker', scope: 'Purok 2 and 3' },
-  { user: 'midwife1', role: 'Midwife', scope: 'All puroks, read only' },
-  { user: 'admin1', role: 'Administrator', scope: 'Staff accounts only' },
-];
+import { PrivacyNoticeDialog } from '../components/PrivacyNotice.jsx';
 
 export function LoginPage() {
   const { login, loading } = useAuth();
@@ -25,6 +17,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,8 +31,6 @@ export function LoginPage() {
       setError(msg);
     }
   };
-
-  const fill = (user) => { setUsername(user); setPassword(DEMO_PASSWORD); setError(''); };
 
   return (
     <div className="login-page">
@@ -84,22 +75,12 @@ export function LoginPage() {
             </Button>
           </form>
 
-          <section className="login-demo" aria-labelledby="demo-title">
-            <h2 id="demo-title">Demo accounts</h2>
-            <p>Tap one to fill the form. Password for all: <code>{DEMO_PASSWORD}</code></p>
-            <ul>
-              {DEMO_ACCOUNTS.map((a) => (
-                <li key={a.user}>
-                  <button type="button" onClick={() => fill(a.user)} aria-pressed={username === a.user} aria-label={`Fill in ${a.user}, ${a.role}, ${a.scope}`}>
-                    <code>{a.user}</code>
-                    <span><strong>{a.role}</strong>{a.scope}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <p className="login-foot">MIS 215 academic project. Fictional health center, synthetic data only. Every change is logged under your name.</p>
+          <p className="login-foot">
+            MIS 215 academic project. Fictional health center, synthetic data only. Every change is logged under your name.{' '}
+            By signing in you agree to handle resident data according to the{' '}
+            <button type="button" className="link-btn" onClick={() => setPrivacyOpen(true)}>data privacy notice</button>.
+          </p>
+          <PrivacyNoticeDialog isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
         </div>
       </main>
     </div>

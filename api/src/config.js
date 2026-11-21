@@ -23,12 +23,28 @@ for (const envPath of envPaths) {
   }
 }
 
+function sanitizeDatabaseUrl(url) {
+  if (!url) return url;
+  try {
+    new URL(url);
+    return url;
+  } catch {
+    const match = url.match(/^(postgres(?:ql)?:\/\/[^:]+:)(.*)(@.+)$/);
+    if (match) {
+      const [, prefix, password, rest] = match;
+      return `${prefix}${encodeURIComponent(password)}${rest}`;
+    }
+    return url;
+  }
+}
+
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  databaseUrl:
+  databaseUrl: sanitizeDatabaseUrl(
     process.env.DATABASE_URL ||
-    'postgres://bhc_api:change_me_api_password@localhost:5432/bhc',
+    'postgres://bhc_api:change_me_api_password@localhost:5432/bhc'
+  ),
   jwtSecret: process.env.JWT_SECRET || 'dev_insecure_jwt_secret_mis215',
   sessionHours: parseInt(process.env.SESSION_HOURS || '8', 10),
 };

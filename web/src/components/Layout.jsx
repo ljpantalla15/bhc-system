@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { NavLink, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Home, Users, FileText, Shield, LogOut, MapPin, ChevronDown, UserPlus, KeyRound } from 'lucide-react';
+import { Home, Users, FileText, Shield, LogOut, MapPin, ChevronDown, UserPlus, KeyRound, ShieldCheck } from 'lucide-react';
 import { ChangePasswordDialog } from './ChangePasswordDialog.jsx';
+import { PrivacyAcknowledgment, PrivacyNoticeDialog } from './PrivacyNotice.jsx';
 
 const getInitials = (name) => {
   if (!name) return 'U';
@@ -59,6 +60,7 @@ export function Layout() {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const menuRef = useRef(null);
   const chipRef = useRef(null);
   const handleLogout = async () => { setMenuOpen(false); await logout(); navigate('/login'); };
@@ -75,7 +77,7 @@ export function Layout() {
     return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
   }, [menuOpen]);
 
-  if (!user) return null;
+  if (!user) return <Navigate to="/login" replace />;
   const items = navItems(user.role);
 
   return (
@@ -119,6 +121,9 @@ export function Layout() {
                   <button type="button" className="account-item" onClick={() => { setMenuOpen(false); setPwOpen(true); }}>
                     <KeyRound size={18} aria-hidden="true" />Change password
                   </button>
+                  <button type="button" className="account-item" onClick={() => { setMenuOpen(false); setPrivacyOpen(true); }}>
+                    <ShieldCheck size={18} aria-hidden="true" />Data privacy notice
+                  </button>
                   <button type="button" className="account-signout" onClick={handleLogout}>
                     <LogOut size={18} aria-hidden="true" />Sign out
                   </button>
@@ -130,9 +135,15 @@ export function Layout() {
       </header>
 
       <ChangePasswordDialog isOpen={pwOpen} onClose={() => setPwOpen(false)} />
+      <PrivacyAcknowledgment userId={user.id} />
+      <PrivacyNoticeDialog isOpen={privacyOpen} onClose={() => setPrivacyOpen(false)} />
 
       <main className="main">
         <div className="page"><Outlet /></div>
+        <footer className="app-foot">
+          <button type="button" onClick={() => setPrivacyOpen(true)}>Data privacy notice</button>
+          <span>Resident records are confidential. Use them for health center work only.</span>
+        </footer>
       </main>
     </div>
   );

@@ -10,6 +10,9 @@ import { usersRouter } from './routes/users.js';
 
 export const app = express();
 
+// Trust reverse proxy (nginx) for rate limiting and IP logging
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
