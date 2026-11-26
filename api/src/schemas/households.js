@@ -27,7 +27,8 @@ export const householdCreateSchema = z.object({
   reviewed_by_name: z.string().max(150).nullable().optional(),
   members: z
     .array(residentCreateSchema)
-    .min(1, 'Household must have at least one member'),
+    .min(1, 'Household must have at least one member')
+    .max(50),
 })
 .refine(
   (data) => {

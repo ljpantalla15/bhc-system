@@ -262,8 +262,8 @@ usersRouter.patch('/:id', async (req, res, next) => {
         await client.query('DELETE FROM user_zone_assignments WHERE user_id = $1', [id]);
       }
 
-      // If user is deactivated, revoke all open sessions immediately
-      if (body.is_active === false) {
+      // If user is deactivated or their password was reset, revoke all open sessions immediately
+      if (body.is_active === false || passwordHash !== undefined) {
         await client.query(
           'UPDATE auth_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL',
           [id]

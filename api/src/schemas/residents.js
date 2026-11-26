@@ -67,7 +67,7 @@ export const residentCreateSchema = z.object({
   fp_status_code: FpStatusCodeEnum.nullable().optional(),
   is_pwd: z.boolean().default(false),
   disability_type_code: DisabilityTypeCodeEnum.nullable().optional(),
-  medical_conditions: z.array(medicalConditionSchema).optional().default([]),
+  medical_conditions: z.array(medicalConditionSchema).max(50).optional().default([]),
 })
 .refine(
   (data) => data.relation_to_head !== 'OTHER' || (data.relation_other && data.relation_other.trim() !== ''),
@@ -139,7 +139,7 @@ export const residentUpdateSchema = z.object({
   fp_status_code: FpStatusCodeEnum.nullable().optional(),
   is_pwd: z.boolean().optional(),
   disability_type_code: DisabilityTypeCodeEnum.nullable().optional(),
-  medical_conditions: z.array(medicalConditionSchema).optional(),
+  medical_conditions: z.array(medicalConditionSchema).max(50).optional(),
 })
 .refine(
   (data) => Object.keys(data).length > 0,

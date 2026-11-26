@@ -38,6 +38,17 @@ function sanitizeDatabaseUrl(url) {
   }
 }
 
+const isProd = (process.env.NODE_ENV || 'development') === 'production';
+if (isProd) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || secret.length < 32 || secret.startsWith('change_me')) {
+    throw new Error('JWT_SECRET must be set to a random string of 32+ characters in production.');
+  }
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL must be set in production.');
+  }
+}
+
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',

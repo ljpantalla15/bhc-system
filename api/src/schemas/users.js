@@ -34,7 +34,7 @@ export const userCreateSchema = z
       .max(150),
     role: userRoleEnum,
     zone_ids: z
-      .array(z.number().int().positive())
+      .array(z.number().int().positive()).max(50)
       .refine((items) => new Set(items).size === items.length, {
         message: 'zone_ids must contain unique values',
       })
@@ -69,7 +69,7 @@ export const userUpdateSchema = z
     role: userRoleEnum.optional(),
     is_active: z.boolean().optional(),
     zone_ids: z
-      .array(z.number().int().positive())
+      .array(z.number().int().positive()).max(50)
       .refine((items) => new Set(items).size === items.length, {
         message: 'zone_ids must contain unique values',
       })

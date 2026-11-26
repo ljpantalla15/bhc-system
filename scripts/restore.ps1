@@ -43,12 +43,16 @@ $dbPort = if ($env:POSTGRES_PORT) { $env:POSTGRES_PORT } else { "5432" }
 Write-Host "Restoring $BackupFile into database '$dbName'..."
 
 $restored = $false
+# Backups use --no-privileges, so the bhc_api grants must be re-applied after restore.
+$grantFile = "database\02_api_role.sql"
 
 if (Get-Command docker -ErrorAction SilentlyContinue) {
     $isRunning = docker compose ps --status running db 2>$null | Select-String "db"
     if ($isRunning) {
         Write-Host "Restoring via docker compose 'db' container..."
         Get-Content $BackupFile | docker compose exec -T db psql -U $dbUser -d $dbName
+        Write-Host "Re-applying bhc_api grants..."
+        Get-Content $grantFile | docker compose exec -T db psql -U $dbUser -d $dbName
         $restored = $true
     }
 }
@@ -58,6 +62,8 @@ if (-not $restored) {
         Write-Host "Restoring via local psql ($dbHost`:$dbPort)..."
         $env:PGPASSWORD = $env:POSTGRES_PASSWORD
         & psql -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $BackupFile
+        Write-Host "Re-applying bhc_api grants..."
+        & psql -h $dbHost -p $dbPort -U $dbUser -d $dbName -f $grantFile
         $restored = $true
     } else {
         Write-Error "Neither docker nor psql was found in PATH."

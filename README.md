@@ -1,242 +1,286 @@
 # Barangay Health Center Resident Profiling and Masterlist System
 
-Academic project for **MIS 215: Client-Server Computing**, Bicol University Graduate School.  
-Designed for the fictional **Barangay Tago Health Center, Naga City, Camarines Sur**.
+A three-tier web system that replaces paper forms and spreadsheets for resident profiling and masterlists at the fictional **Barangay Tago Health Center, Naga City, Camarines Sur**.
 
-> **SYNTHETIC DATA NOTICE**: This system is built strictly for academic research and evaluation using synthetic (fictional) data. It contains no real personal health data, patient charts, or identifiable resident information.
+Academic project for **MIS 215: Client-Server Computing**, Bicol University Graduate School.
+
+> **Synthetic data only.** Every record in this repository is fictional. It contains no real resident, patient, or health data. Never load real resident data into it.
+
+![Login screen of the Barangay Tago Health Center system](docs/screenshots/login.png)
+
+## Contents
+
+1. [Features](#1-features)
+2. [Architecture](#2-architecture)
+3. [Demo accounts and roles](#3-demo-accounts-and-roles)
+4. [Quick start (Docker)](#4-quick-start-docker)
+5. [Configuration](#5-configuration)
+6. [Local development](#6-local-development)
+7. [API overview](#7-api-overview)
+8. [Testing](#8-testing)
+9. [Backup and restore](#9-backup-and-restore)
+10. [Security and privacy](#10-security-and-privacy)
+11. [Troubleshooting](#11-troubleshooting)
+12. [Project layout and documentation](#12-project-layout-and-documentation)
+13. [License](#13-license)
 
 ---
 
-## 1. System Overview & Architecture
+## 1. Features
 
-The system is a production-grade **Three-Tier Client-Server Architecture** designed to transition community health operations from manual paper forms and unversioned spreadsheets into an integrated, secure, and auditable client-server platform.
+- **Household encoding wizard** that follows the DOH Household Profiling Form.
+- **Resident directory** with search, filters, and family grouping (`group_by=household`).
+- **Masterlists** for maternal, pediatric, senior, and PWD residents, computed by the database and print-friendly.
+- **Role-based access** (BHW, Midwife, Admin) enforced by the API on every request, with purok (zone) scoping for BHWs.
+- **No deletes.** Residents, households, and users are deactivated, never removed.
+- **Archive and restore.** Deactivated residents appear in the Archive tab with who archived them, when, and why. BHWs can restore residents in their own puroks.
+- **Audit trail.** Database triggers stamp `created_by` / `updated_by` and write every change to `change_log`. Each resident has a change history view.
+- **Account security.** bcrypt password hashing, server-side sessions, and self-service password change.
 
-### Architecture Diagram
+## 2. Architecture
+
+| Tier | Folder | Technology | Exposure |
+| :--- | :--- | :--- | :--- |
+| 1. Presentation | `web/`, `nginx/` | React 18, Vite, Tailwind CSS, React Router, served by nginx | HTTPS on port **443** (the only published port) |
+| 2. Application | `api/` | Node.js 20+, Express, Zod, JWT, bcryptjs, helmet, express-rate-limit | Internal, port 3000 |
+| 3. Data | `database/` | PostgreSQL 16 | Internal, port 5432 |
+
+Docker Compose runs three containers: `nginx`, `api`, and `db`. The browser never talks to the database.
 
 ```mermaid
 graph TD
-    Client["Client Browser<br/>(BHW / Midwife / Admin)"]
-    
-    subgraph Host["Host Docker Environment"]
-        subgraph Edge["Edge / Reverse Proxy Tier"]
-            Nginx["Nginx Reverse Proxy<br/>Port 443 (HTTPS / TLS 1.3)<br/>Static SPA Hosting"]
-        end
-        
-        subgraph InternalNetwork["Isolated Bridge Network (bhc-net)"]
-            API["Application Tier: Express REST API<br/>Node.js 20+ (Internal Port 3000)<br/>Stateless JWT + RBAC + Zod"]
-            DB[("Data Tier: PostgreSQL 16<br/>(Internal Port 5432)<br/>Least-Privilege Role: bhc_api<br/>Triggers & Audit Logging")]
+    Client["Browser<br/>(BHW / Midwife / Admin)"]
+
+    subgraph Host["Docker host"]
+        Nginx["nginx<br/>HTTPS :443 (TLS)<br/>Static SPA + /api/* proxy"]
+        subgraph Net["Internal network"]
+            API["api<br/>Express REST, :3000<br/>JWT + RBAC + Zod"]
+            DB[("db<br/>PostgreSQL 16, :5432<br/>role bhc_api, triggers, change_log")]
         end
     end
 
-    Client -->|HTTPS:443| Nginx
-    Nginx -->|Static Web Assets| Client
-    Nginx -->|Reverse Proxy /api/*| API
-    API -->|TCP / Parameterized SQL| DB
-
-    style Edge fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style InternalNetwork fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style DB fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style API fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    Client -->|HTTPS 443| Nginx
+    Nginx -->|/api/*| API
+    API -->|parameterized SQL| DB
 ```
 
-### Architectural Tiers
+How the tiers behave:
 
-1. **Presentation Tier (`web/`)**:
-   - Single Page Application (SPA) built with React 18, Vite, and Tailwind CSS.
-   - Served securely over TLS/HTTPS by Nginx.
-   - Household encoding wizard mirroring the official DOH Household Profiling Form.
-   - Real-time resident directory with family grouping (`group_by=household`) and print-friendly masterlists.
-2. **Application Tier (`api/`)**:
-   - Express REST API running on Node.js 20+ (internal port 3000; never exposed directly to the internet).
-   - Role-Based Access Control (RBAC) and Purok/Zone-scoping middleware.
-   - Security hardening via `helmet`, rate limiting (`express-rate-limit`), and input schema validation via `zod`.
-   - Strict transaction handling via `withTransaction()` setting `app.current_user_id` for immutable audit stamping.
-3. **Data Tier (`database/`)**:
-   - PostgreSQL 16 relational database (internal port 5432).
-   - Principle of Least Privilege: The API connects as `bhc_api`, an unprivileged user without DDL rights.
-   - Referential integrity, unique constraints, and check constraints enforce demographic validation.
-   - High-performance stored procedure `masterlist(category)` computes real-time maternal, pediatric, senior, and PWD masterlists.
-   - Soft-deactivation triggers prevent permanent record loss; all modifications are logged to `change_log`.
-   - Deactivated residents are kept in an **Archive** (Residents page, Archived tab): newest first, with who archived them, when and why. Health workers can restore a resident in their own puroks; the restore is logged as `REACTIVATE`.
+- **nginx** serves the built SPA and proxies `/api/*` to the API.
+- **api** validates input with Zod, checks role and purok scope, then runs SQL through `withTransaction()`, which sets `app.current_user_id` so triggers can stamp the audit columns.
+- **db** connects the API as `bhc_api`, a least-privilege role with no DDL rights. Constraints enforce demographic validation, and the `masterlist(category)` function builds the masterlists.
 
----
+## 3. Demo accounts and roles
 
-## 2. Synthetic Demo Accounts
+The seed script creates these synthetic accounts. Password for all of them: `Demo#12345`
 
-The database comes pre-seeded with synthetic test accounts demonstrating the role-based access control policies:
-
-| Username | Role | Purok (Zone) Scope | Permissions / Capabilities |
+| Username | Role | Zones | What it can do |
 | :--- | :--- | :--- | :--- |
-| `admin1` | **ADMIN** | System-wide | Manages user accounts and zone assignments. **Strictly barred from accessing resident health profiles or masterlists.** |
-| `midwife1` | **MIDWIFE** | All Puroks (1, 2, 3) | **Read-Only Oversight.** Views resident directory and generates masterlists across all zones, and can read the archive. Sees who last changed each record and its change history. Cannot create, edit, deactivate, or restore records. |
-| `bhw1` | **BHW** | Purok 1 | Encodes households, updates profiles, and views masterlists **strictly in Purok 1**. Records in other zones return `404 Not Found`. |
-| `bhw2` | **BHW** | Puroks 2 & 3 | Encodes households, updates profiles, and views masterlists in **Purok 2 and Purok 3**. |
+| `admin1` | ADMIN | System-wide | Manages user accounts and zone assignments. **No access to resident health data.** |
+| `midwife1` | MIDWIFE | Puroks 1, 2, 3 | Read-only. Views residents, masterlists, the archive, and change history. Cannot create, edit, deactivate, or restore. |
+| `bhw1` | BHW | Purok 1 | Creates, reads, updates, deactivates, and restores residents in Purok 1. Records in other zones return `404`. |
+| `bhw2` | BHW | Puroks 2 and 3 | Same as `bhw1`, for Puroks 2 and 3. |
 
-**Default Password (All Accounts)**: `Demo#12345`
+Every role can change **its own password** from the account menu (top right) > **Change password** (`POST /api/auth/password`). The current password is required and the user's other sessions are signed out. Only `admin1` can change a username, role, zones, or active status.
 
-Any signed-in user can change their own password from the account menu (top right) > **Change password**
-(`POST /api/auth/password`). The current password is required, and the user's other sessions are signed out.
-Username, role, purok assignments and active status can only be changed by `admin1`.
+> Change these passwords before using the system anywhere other than a local demo.
 
----
+## 4. Quick start (Docker)
 
-## 3. Quick Start (Docker Compose)
+**Prerequisites:** [Docker Desktop](https://www.docker.com/) (WSL2 backend on Windows), `openssl` for the certificate script (included with Git for Windows / Git Bash), and [Git](https://git-scm.com/). Node.js 20+ is only needed to run tests or develop locally.
 
-### Prerequisites
-- [Docker Desktop](https://www.docker.com/) (WSL2 backend recommended on Windows)
-- [Node.js](https://nodejs.org/) v20+ (optional, for local tests)
-- [Git](https://git-scm.com/)
+1. **Create your environment file** and replace every placeholder value (see [Configuration](#5-configuration)):
 
-### Step-by-Step Setup
-
-1. **Clone the repository and prepare environment secrets**:
    ```bash
    cp .env.example .env
-   # Edit .env to set your desired passwords and secrets
    ```
 
-2. **Generate self-signed SSL/TLS certificates**:
+2. **Generate a self-signed HTTPS certificate** into `certs/` (run in Git Bash or any POSIX shell):
+
    ```bash
-   # On Linux/macOS/Git Bash:
    sh scripts/gen-cert.sh
-
-   # On Windows PowerShell:
-   # (Generates RSA 2048-bit server.crt and server.key in certs/)
    ```
 
-3. **Start the complete three-tier application**:
+3. **Build and start the full stack:**
+
    ```bash
    docker compose --profile app up --build -d
    ```
 
-4. **Access the application**:
-   - Open your browser to: **`https://localhost`**
-   - Accept the local self-signed certificate warning in your browser.
-   - Log in using one of the demo credentials above.
+4. **Open https://localhost**, accept the self-signed certificate warning, and sign in with a [demo account](#3-demo-accounts-and-roles).
 
-5. **Stop the containers**:
+5. **Stop the stack:**
+
    ```bash
    docker compose --profile app down
-   # To wipe database volumes and re-seed clean data:
-   docker compose down -v
    ```
 
----
+   To wipe the database volume and re-run the SQL files (schema, role, seed):
 
-## 4. Local Development (Without Docker)
+   ```bash
+   docker compose --profile app down -v
+   ```
 
-You can also run individual tiers locally during development:
+The SQL files in `database/` run **only on the first start of an empty volume**. After editing them, wipe the volume with `down -v`.
+
+## 5. Configuration
+
+Settings live in `.env` (copied from `.env.example`). Never commit `.env` or `certs/`.
+
+| Variable | Purpose |
+| :--- | :--- |
+| `POSTGRES_DB` | Database name |
+| `POSTGRES_USER` | Database owner account (used only to initialize the database) |
+| `POSTGRES_PASSWORD` | Password for the owner account |
+| `BHC_API_PASSWORD` | Password for the least-privilege `bhc_api` role the API uses |
+| `JWT_SECRET` | Long random string used to sign tokens, for example `openssl rand -hex 32`. Required in production. |
+| `SESSION_HOURS` | Session lifetime in hours (default `8`) |
+
+In production mode the API refuses to start without `JWT_SECRET` and `DATABASE_URL`. Docker Compose builds `DATABASE_URL` for you from the variables above.
+
+## 6. Local development
+
+Run the tiers on your machine with only the database in Docker:
 
 ```bash
-# 1. Start the PostgreSQL database
+# 1. Database only (runs database/*.sql on first start)
 docker compose up -d db
 
-# 2. Start the API service (from the api/ directory)
+# 2. API on http://localhost:3000
 cd api
 npm install
-npm start          # Runs Express on http://localhost:3000
+npm start
 
-# 3. Start the React development server (from the web/ directory)
+# 3. Web dev server on http://localhost:5173
 cd ../web
 npm install
-npm run dev        # Runs Vite on http://localhost:5173
+npm run dev
 ```
 
----
+Open a `psql` shell in the database container:
 
-## 5. Automated Testing Suite
+```bash
+docker compose exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+```
 
-The repository includes extensive automated test suites ensuring full compliance with `docs/openapi.yaml` and the course security rules.
+If you need a schema change, add `database/migrations/NNN_description.sql` and update the docs. Do not invent tables or columns outside the schema.
 
-### 5.1 API Test Suite (Node.js Native Test Runner)
-Covers all 14 endpoints, role-based zoning, error mapping, and transaction integrity:
+## 7. API overview
+
+The REST API speaks JSON and has 14 operations. The full contract, with schemas and error shapes, is [`docs/openapi.yaml`](docs/openapi.yaml). If behavior changes, update that file in the same change.
+
+| Area | Endpoints |
+| :--- | :--- |
+| Auth | `POST /api/auth/login`, `POST /api/auth/logout`, `POST /api/auth/password` |
+| Households | `GET/POST /api/households`, `GET/PATCH /api/households/{id}` |
+| Residents | `GET/POST /api/residents`, `GET/PATCH /api/residents/{id}`, `POST /api/residents/{id}/reactivate`, `GET /api/residents/{id}/history` |
+| Masterlists | `GET /api/masterlists` |
+| Users (admin) | `GET/POST /api/users`, `GET/PATCH /api/users/{id}` |
+
+See `docs/openapi.yaml` for exact methods and status codes. Conventions for errors, validation, and transactions are in [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md).
+
+## 8. Testing
+
+### 8.1 API tests (Node.js test runner and supertest)
+
+Needs the database running (`docker compose up -d db`).
 
 ```bash
 npm --prefix api test
 ```
-The test files share one database, so `npm test` runs them one file at a time (`--test-concurrency=1`) to keep the household counts stable.
-*Current status: **All 93 tests passing** across 11 test files, including `test/password.test.js` for the change-password endpoint and `test/archive.test.js` for the resident archive and restore, and `test/resident-history.test.js` for the per-resident change history.*
 
-### 5.2 Bruno API Collection (`tests/bruno/`)
-A complete Bruno collection covering all 14 endpoints with success (200/201) and error cases (400, 401, 403, 404):
+The suite covers every endpoint with success and failure cases (400, 401, 403, 404), role and zone rules, error mapping, and transaction integrity. The test files share one database, so they run one at a time (`--test-concurrency=1`).
+
+Current status: **93 tests passing** across 11 files in `api/test/`.
+
+### 8.2 Bruno collection (`tests/bruno/`)
 
 ```bash
-# Run via Bruno CLI against the local environment:
-bru run tests/bruno --env Local
-
-# Or against the Docker HTTPS stack:
-bru run tests/bruno --env Docker --insecure
+bru run tests/bruno --env Local             # local API
+bru run tests/bruno --env Docker --insecure # Docker HTTPS stack
 ```
-See [`tests/bruno/README.md`](tests/bruno/README.md) for full instructions and graphical UI setup.
 
-### 5.3 Load and Stress Testing (`tests/load/`)
-Includes tests simulating concurrent virtual health workers querying resident profiles and masterlists:
+See [`tests/bruno/README.md`](tests/bruno/README.md) for details and the graphical setup.
+
+### 8.3 Load testing (`tests/load/`)
 
 ```bash
-# Execute native high-performance Node.js benchmark:
-npm --prefix api run load-test
-
-# Or run using Grafana k6:
-k6 run tests/load/k6-script.js
-
-# Or run using Python Locust:
-locust -f tests/load/locustfile.py --host http://localhost:3000
+npm --prefix api run load-test                              # built-in Node.js runner
+k6 run tests/load/k6-script.js                              # Grafana k6
+locust -f tests/load/locustfile.py --host http://localhost:3000   # Locust
 ```
-Empirical results (**700+ req/s, 0.00% error rate under 50 concurrent VUs**) and the full academic client-server comparison are documented in [`docs/LOAD_TEST.md`](docs/LOAD_TEST.md).
 
----
+Result: **700+ requests/s with 0.00% errors at 50 concurrent virtual users.** Method, tables, and the comparison with paper and two-tier systems are in [`docs/LOAD_TEST.md`](docs/LOAD_TEST.md).
 
-## 6. Backup & Disaster Recovery
+## 9. Backup and restore
 
-The system includes automated backup and point-in-time restoration scripts utilizing `pg_dump` and `psql`:
+Scripts use `pg_dump` and `psql` and write timestamped snapshots to `backups/`.
 
 ```bash
-# Create an atomic timestamped database snapshot in backups/
-sh scripts/backup.sh        # Linux / macOS / Git Bash
-.\scripts\backup.ps1        # Windows PowerShell
+# Back up
+sh scripts/backup.sh          # Linux / macOS / Git Bash
+.\scripts\backup.ps1          # Windows PowerShell
 
-# Restore database snapshot:
+# Restore
 sh scripts/restore.sh backups/bhc_backup_YYYYMMDD_HHMMSS.sql
 .\scripts\restore.ps1 -BackupFile backups\bhc_backup_YYYYMMDD_HHMMSS.sql
 ```
-Verified recovery records are detailed in [`docs/BACKUP_RECORD.md`](docs/BACKUP_RECORD.md).
 
----
+A verified recovery run is recorded in [`docs/BACKUP_RECORD.md`](docs/BACKUP_RECORD.md).
 
-## 7. Directory Structure
+## 10. Security and privacy
+
+- HTTPS only, with port 443 as the sole published port. The API and database are reachable only on the internal Docker network.
+- The API connects as `bhc_api` (least privilege), never as the database owner.
+- All SQL is parameterized (`pg`, no ORM, no string-built SQL). Input is validated with Zod.
+- Passwords are hashed with bcrypt. Passwords, tokens, and hashes are never logged.
+- Raw database errors are never returned to clients, because they can contain resident data. Errors are mapped to a fixed shape.
+- Login is rate limited, and `helmet` sets security headers.
+- ADMIN accounts cannot read resident health data. BHWs are limited to their assigned puroks.
+
+Data handling and the RA 10173 (Data Privacy Act) notes are in [`docs/PRIVACY.md`](docs/PRIVACY.md).
+
+**Out of scope:** offline entry, SMS, integration with government systems, clinical records, and real deployment.
+
+## 11. Troubleshooting
+
+| Symptom | Likely cause and fix |
+| :--- | :--- |
+| Browser warns about the certificate | Expected with the self-signed certificate. Accept it for `localhost`. |
+| nginx container exits or restarts | `certs/server.crt` and `certs/server.key` are missing. Run `sh scripts/gen-cert.sh`. |
+| `.env` changes or SQL edits have no effect | The database was already initialized. Run `docker compose --profile app down -v` to recreate it. |
+| API cannot connect to the database | Check that `BHC_API_PASSWORD` in `.env` matches the one used when the volume was first created. Recreate the volume if you changed it. |
+| API exits at startup in production | `JWT_SECRET` or `DATABASE_URL` is not set. |
+| Port 443 already in use | Stop the other service using it (IIS, another web server, another Docker stack). |
+| API tests fail with connection errors | Start the database first: `docker compose up -d db`. |
+| Too many login attempts | The login rate limiter is active. Wait and retry. |
+
+## 12. Project layout and documentation
 
 ```
 bhc-system/
-├── api/                     # Tier 2: Express REST API (Node.js 20+)
-│   ├── src/                 # Application source (routes, schemas, middleware)
-│   ├── test/                # Automated API test suites (71 tests)
-│   └── package.json
-├── database/                # Tier 3: PostgreSQL 16 schema & seed scripts
-│   ├── 01_schema.sql        # Tables, views, triggers, and functions
-│   ├── 02_api_role.sql      # Least-privilege 'bhc_api' role definition
-│   └── 03_demo_seed.sql     # Synthetic demonstration seed data
-├── docs/                    # Architectural & project documentation
-│   ├── openapi.yaml         # Complete OpenAPI 3.0 API specification
-│   ├── CONVENTIONS.md       # API, database, and security conventions
-│   ├── BUILD_PLAN.md        # Step-by-step implementation milestones
-│   ├── DATA_DICTIONARY.md   # Entity-Relationship diagram & data dictionary
-│   ├── PRIVACY.md           # Data privacy statement and RA 10173 compliance
-│   ├── LOAD_TEST.md         # Load test report & Architectural Comparison
-│   └── BACKUP_RECORD.md     # Tested backup and restoration audit logs
-├── nginx/                   # Tier 1: Nginx reverse proxy configuration & Dockerfile
-├── scripts/                 # Operational scripts (gen-cert, backup, restore)
-├── tests/
-│   ├── bruno/               # 28 Bruno API request definitions
-│   └── load/                # Load test scripts (runner.js, k6, locust)
-├── web/                     # Tier 1: React 18 + Vite SPA client
-├── docker-compose.yml       # Multi-container orchestration (nginx, api, db)
-├── AGENTS.md                # System specification & hard project rules
-└── LICENSE                  # MIT License
+├── api/                  Tier 2: Express REST API (src/, test/)
+├── web/                  Tier 1: React + Vite single-page app
+├── nginx/                Tier 1: reverse proxy config and Dockerfile
+├── database/             Tier 3: 01_schema.sql, 02_api_role.sql, 03_demo_seed.sql,
+│                         04_set_api_password.sh, migrations/
+├── docs/                 Specification and project documents (below)
+├── scripts/              gen-cert, backup, restore (.sh and .ps1)
+├── tests/                bruno/ (API collection) and load/ (k6, Locust, Node runner)
+├── docker-compose.yml    nginx, api, db
+├── AGENTS.md             Project rules and working agreements
+└── LICENSE               MIT
 ```
 
----
+| Document | Contents |
+| :--- | :--- |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | API contract |
+| [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | API, database, and security conventions |
+| [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | ER diagram and data dictionary |
+| [`docs/PRIVACY.md`](docs/PRIVACY.md) | Data privacy statement |
+| [`docs/LOAD_TEST.md`](docs/LOAD_TEST.md) | Load test report and architecture comparison |
+| [`docs/BACKUP_RECORD.md`](docs/BACKUP_RECORD.md) | Backup and restore verification |
 
-## 8. License
+## 13. License
 
-This project is open-source software licensed under the **[MIT License](LICENSE)**.
-Academic project developed for **MIS 215: Client-Server Computing**, Bicol University Graduate School.
+Released under the [MIT License](LICENSE). Developed for MIS 215: Client-Server Computing, Bicol University Graduate School.

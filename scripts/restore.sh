@@ -36,9 +36,13 @@ echo "Restoring ${BACKUP_FILE} into database '${TARGET_DB}'..."
 if command -v docker >/dev/null 2>&1 && docker compose ps --status running db 2>/dev/null | grep -q db; then
   echo "Restoring via docker compose 'db' container..."
   docker compose exec -T db psql -U "$POSTGRES_USER" -d "$TARGET_DB" < "$BACKUP_FILE"
+  echo "Re-applying bhc_api grants (backups use --no-privileges)..."
+  docker compose exec -T db psql -U "$POSTGRES_USER" -d "$TARGET_DB" < database/02_api_role.sql
 elif command -v psql >/dev/null 2>&1; then
   echo "Restoring via PostgreSQL psql (${POSTGRES_HOST}:${POSTGRES_PORT})..."
   PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$TARGET_DB" < "$BACKUP_FILE"
+  echo "Re-applying bhc_api grants (backups use --no-privileges)..."
+  PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$TARGET_DB" < database/02_api_role.sql
 else
   echo "Error: Neither docker nor psql was found in PATH." >&2
   exit 1
