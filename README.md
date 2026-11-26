@@ -268,7 +268,6 @@ bhc-system/
 ├── scripts/              gen-cert, backup, restore (.sh and .ps1)
 ├── tests/                bruno/ (API collection) and load/ (k6, Locust, Node runner)
 ├── docker-compose.yml    nginx, api, db
-├── AGENTS.md             Project rules and working agreements
 └── LICENSE               MIT
 ```
 
